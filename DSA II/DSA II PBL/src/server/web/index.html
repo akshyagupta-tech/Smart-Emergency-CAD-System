@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101619">
+  <title>Response Operations | Smart CAD</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #e7efec;
+      --muted: #8fa09b;
+      --quiet: #61716e;
+      --canvas: #101619;
+      --panel: #182124;
+      --panel-raised: #1d292b;
+      --line: #304042;
+      --teal: #54d6b1;
+      --amber: #f0b65f;
+      --coral: #f27568;
+      --blue: #83b9df;
+      --display: "Avenir Next", "Trebuchet MS", sans-serif;
+      --body: "Avenir Next", "Segoe UI", sans-serif;
+      font-family: var(--body);
+      background: var(--canvas);
+      color: var(--ink);
+      font-synthesis: none;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-width: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(rgba(84, 214, 177, .025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(84, 214, 177, .025) 1px, transparent 1px),
+        radial-gradient(ellipse at 75% -20%, rgba(84, 214, 177, .10), transparent 42%),
+        var(--canvas);
+      background-size: 32px 32px, 32px 32px, auto, auto;
+    }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    .shell { max-width: 1680px; margin: 0 auto; padding: 18px 22px 28px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; border-bottom: 1px solid var(--line); padding: 2px 0 16px; }
+    .brand { display: flex; align-items: center; gap: 13px; }
+    .brand-mark { width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid rgba(84,214,177,.55); color: var(--teal); font: 700 16px var(--display); transform: rotate(45deg); }
+    .brand-mark span { transform: rotate(-45deg); }
+    .eyebrow { color: var(--teal); font: 700 10px var(--display); text-transform: uppercase; letter-spacing: 1.4px; }
+    h1 { margin: 2px 0 0; font: 650 19px var(--display); letter-spacing: 0; }
+    .top-status { display: flex; align-items: center; gap: 18px; color: var(--muted); font: 600 11px var(--display); text-transform: uppercase; }
+    .live { display: inline-flex; align-items: center; gap: 8px; color: var(--teal); }
+    .live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 12px currentColor; animation: pulse 1.7s ease-in-out infinite; }
+    #clock { color: var(--ink); font-variant-numeric: tabular-nums; }
+    .scenario-banner { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 12px 0 2px; padding: 10px 13px; border: 1px solid var(--line); border-left: 3px solid var(--teal); background: rgba(24,33,36,.88); }
+    .scenario-banner.earthquake { border-left-color: var(--coral); }
+    .scenario-banner.tsunami { border-left-color: var(--blue); }
+    .scenario-title { display: grid; gap: 3px; }
+    .scenario-title strong { color: var(--ink); font: 700 10px var(--display); text-transform: uppercase; }
+    .scenario-title span { color: var(--muted); font-size: 10px; }
+    .scenario-control { display: flex; align-items: center; gap: 9px; }
+    .scenario-control select { width: auto; min-width: 230px; }
+    .toolbar { display: flex; align-items: center; gap: 8px; padding: 12px 0 16px; }
+    .toolbar .spacer { flex: 1; }
+    .toolbar-action { flex: 1 1 230px; min-height: 40px; white-space: normal; }
+    .button { min-height: 36px; border: 1px solid var(--line); border-radius: 4px; padding: 0 12px; color: var(--ink); background: #1c282a; font-size: 12px; font-weight: 650; transition: background .15s, border-color .15s, transform .15s; }
+    .button:hover { background: #263638; border-color: #52716d; }
+    .button:active { transform: translateY(1px); }
+    .button.primary { color: #0c211b; background: var(--teal); border-color: var(--teal); }
+    .button.primary:hover { background: #7ce7c7; }
+    .button.warn { color: #261b0c; background: var(--amber); border-color: var(--amber); }
+    .button.small { min-height: 29px; padding: 0 9px; font-size: 11px; }
+    .layout { display: grid; grid-template-columns: minmax(255px, 292px) minmax(440px, 1fr) minmax(270px, 320px); gap: 13px; align-items: start; }
+    .column { display: grid; gap: 13px; min-width: 0; }
+    .panel { min-width: 0; background: linear-gradient(145deg, rgba(29,41,43,.96), rgba(22,31,34,.97)); border: 1px solid var(--line); border-radius: 5px; box-shadow: 0 8px 26px rgba(0,0,0,.12); }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 45px; padding: 0 13px; border-bottom: 1px solid var(--line); }
+    h2 { margin: 0; color: #dce8e4; font: 700 11px var(--display); text-transform: uppercase; letter-spacing: .7px; }
+    .panel-meta { color: var(--muted); font-size: 10px; }
+    .panel-body { padding: 13px; }
+    .count { color: var(--teal); font: 700 11px var(--display); }
+    .queue-list { display: grid; gap: 8px; max-height: 382px; overflow: auto; }
+    .patient { border-left: 2px solid var(--amber); background: rgba(8,15,17,.36); padding: 9px 9px 8px; animation: appear .24s ease both; }
+    .patient.critical { border-color: var(--coral); }
+    .patient-head { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+    .patient-id { color: var(--ink); font: 700 12px var(--display); }
+    .esi { color: var(--coral); font: 700 10px var(--display); }
+    .triage-tag { font: 700 9px var(--display); text-transform: uppercase; }
+    .triage-tag.red { color: var(--coral); }
+    .triage-tag.yellow { color: var(--amber); }
+    .triage-tag.green { color: var(--teal); }
+    .triage-tag.black { color: #d3d9d7; }
+    .patient-name { color: #c3d0cc; font-size: 10px; }
+    .condition { margin: 3px 0 8px; color: #aab9b5; font-size: 11px; overflow-wrap: anywhere; }
+    .score-row { display: flex; justify-content: space-between; color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
+    .track { height: 4px; margin-top: 5px; background: #344345; overflow: hidden; }
+    .track > span { display: block; height: 100%; background: linear-gradient(90deg, var(--teal), var(--amber), var(--coral)); transition: width .4s ease; }
+    .empty { color: var(--muted); padding: 18px 6px; font-size: 12px; text-align: center; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+    .field { display: grid; gap: 5px; min-width: 0; }
+    .field.full { grid-column: 1 / -1; }
+    label { color: var(--muted); font-size: 10px; font-weight: 650; }
+    input, select { width: 100%; min-height: 34px; border: 1px solid #3a4b4d; border-radius: 3px; background: #111a1d; color: var(--ink); padding: 0 8px; outline: none; }
+    input:focus, select:focus { border-color: var(--teal); box-shadow: 0 0 0 2px rgba(84,214,177,.12); }
+    input[type="range"] { min-height: 18px; padding: 0; accent-color: var(--teal); }
+    .form-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
+    .status-line { min-height: 15px; color: var(--muted); font-size: 10px; }
+    .map-panel { overflow: hidden; }
+    .map-head-actions { display: flex; align-items: center; gap: 12px; }
+    .legend { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 9px; }
+    .legend span { display: inline-flex; align-items: center; gap: 4px; }
+    .legend i { width: 7px; height: 7px; display: inline-block; border-radius: 50%; background: var(--teal); }
+    .legend .hospital-dot { background: var(--coral); }
+    .legend .scene-dot { background: var(--amber); }
+    .map-wrap { position: relative; min-height: 440px; padding: 5px; background: radial-gradient(ellipse at 50% 50%, rgba(43,75,70,.20), rgba(11,18,20,.24) 72%); }
+    #cityMap { display: block; width: 100%; height: 430px; overflow: visible; }
+    .road { stroke: #425458; stroke-width: 3; fill: none; }
+    .road.congested { stroke: var(--coral); stroke-dasharray: 7 6; animation: traffic 1.2s linear infinite; }
+    .road.severed { stroke: #ff5266; stroke-width: 5; stroke-dasharray: 5 8; }
+    .road.inactive { stroke: #67706f; stroke-dasharray: 3 6; opacity: .5; }
+    .road.route-active:not(.congested) { stroke: #36ffd4; stroke-width: 5; filter: drop-shadow(0 0 5px rgba(54,255,212,.9)); }
+    .road.route-active.severed { stroke: #ff5266; }
+    .route-glow { fill: none; stroke: rgba(37,255,206,.48); stroke-width: 11; stroke-linecap: round; stroke-linejoin: round; filter: blur(4px); }
+    .rubble-crack { fill: none; stroke: #ffd1d5; stroke-width: 2; stroke-linecap: square; }
+    .blocked-label { fill: #ff8792; font: 700 9px var(--display); text-anchor: middle; paint-order: stroke; stroke: #1b171a; stroke-width: 4px; }
+    .backbone { stroke: rgba(84,214,177,.50); stroke-width: 1.5; stroke-dasharray: 2 7; }
+    .road-label { fill: #8b9b98; font: 10px var(--body); paint-order: stroke; stroke: #142023; stroke-width: 4px; }
+    .node-dot { stroke: #101719; stroke-width: 3; fill: var(--blue); }
+    .node-dot.hospital { fill: var(--coral); }
+    .node-dot.hospital.offline { fill: #711e2b; stroke: #ff5266; }
+    .node-dot.field-hospital { fill: #42ff9b; stroke: #b7ffd4; filter: drop-shadow(0 0 8px rgba(66,255,155,.9)); }
+    .node-dot.inactive { fill: #64716e; opacity: .55; }
+    .node-dot.scene { fill: var(--amber); }
+    .node-dot.depot { fill: var(--teal); }
+    .node-label { fill: #dbe6e2; font: 11px var(--display); font-weight: 650; text-anchor: middle; paint-order: stroke; stroke: #131d20; stroke-width: 4px; }
+    .node-status-label { fill: #ff8792; font: 700 9px var(--display); text-anchor: middle; paint-order: stroke; stroke: #23181a; stroke-width: 4px; }
+    .field-status-label { fill: #6affad; font: 700 8px var(--display); text-anchor: middle; paint-order: stroke; stroke: #10251a; stroke-width: 4px; }
+    .vehicle { fill: #f4f4d0; stroke: var(--teal); stroke-width: 2; filter: drop-shadow(0 0 5px rgba(84,214,177,.9)); }
+    .vehicle-halo { fill: rgba(54,255,212,.16); stroke: #36ffd4; stroke-width: 1.5; animation: vehiclePulse 1s ease-in-out infinite alternate; }
+    .prune-badge { display: inline-flex; margin-top: 8px; padding: 5px 8px; border: 1px solid rgba(84,214,177,.4); border-radius: 3px; color: var(--teal); background: rgba(84,214,177,.08); font: 700 10px var(--display); }
+    .demo-actions { display: grid; gap: 8px; }
+    .demo-actions .button { width: 100%; text-align: left; }
+    .demo-note { margin: 10px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+    .map-footer { display: flex; justify-content: space-between; gap: 10px; padding: 10px 13px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10px; }
+    .route-text { color: var(--teal); overflow-wrap: anywhere; }
+    .metric-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+    .metric { font: 650 25px var(--display); font-variant-numeric: tabular-nums; }
+    .metric-unit { color: var(--muted); font-size: 10px; }
+    .utility { color: var(--amber); font: 700 12px var(--display); }
+    .payload-list { display: grid; gap: 9px; margin-top: 13px; }
+    .item-row { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 4px 8px; align-items: center; }
+    .item-name { color: #cfdbd7; font-size: 10px; }
+    .item-value { color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
+    .item-bar { grid-column: 1 / -1; height: 3px; background: #354345; }
+    .item-bar span { display: block; height: 100%; background: var(--teal); }
+    .payload-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; color: var(--muted); font-size: 10px; }
+    .timeline { margin-top: 10px; }
+    .timeline-labels { display: flex; justify-content: space-between; color: var(--muted); font-size: 9px; font-variant-numeric: tabular-nums; }
+    .audit-list { display: grid; gap: 5px; max-height: 128px; overflow: auto; margin-top: 9px; }
+    .audit-record { display: grid; grid-template-columns: 47px 1fr auto; gap: 7px; color: #bfccc8; font: 10px var(--body); }
+    .audit-record time { color: var(--teal); font-variant-numeric: tabular-nums; }
+    .audit-record small { color: var(--muted); text-align: right; }
+    .mci-tour { color: var(--teal); font-size: 11px; line-height: 1.7; overflow-wrap: anywhere; }
+    .mci-map { display: block; width: 100%; height: 100px; margin-top: 8px; border-top: 1px solid rgba(84,214,177,.12); border-bottom: 1px solid rgba(84,214,177,.12); }
+    .mci-route-line { fill: none; stroke: var(--amber); stroke-width: 2; stroke-dasharray: 4 4; }
+    .mci-stop { fill: var(--panel-raised); stroke: var(--teal); stroke-width: 2; }
+    .mci-stop-label { fill: var(--ink); font: 9px var(--body); text-anchor: middle; }
+    .mci-stop-number { fill: var(--amber); font: 700 8px var(--display); text-anchor: middle; }
+    .mci-stats { display: flex; gap: 16px; margin-top: 10px; color: var(--muted); font-size: 10px; }
+    .mci-stats b { color: var(--amber); font-variant-numeric: tabular-nums; }
+    .toast { position: fixed; right: 20px; bottom: 20px; z-index: 4; max-width: min(400px, calc(100vw - 40px)); padding: 11px 14px; border: 1px solid #55716b; border-radius: 4px; color: var(--ink); background: #20302e; box-shadow: 0 8px 24px #0008; font-size: 12px; opacity: 0; pointer-events: none; transform: translateY(8px); transition: .2s ease; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    @keyframes pulse { 50% { opacity: .38; } }
+    @keyframes appear { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+    @keyframes traffic { to { stroke-dashoffset: -26; } }
+    @keyframes vehiclePulse { to { opacity: .35; transform: scale(1.35); transform-box: fill-box; transform-origin: center; } }
+    @media (max-width: 1120px) {
+      .layout { grid-template-columns: minmax(235px, 30%) minmax(0, 1fr); }
+      .right-column { grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0,1fr)); }
+      .map-wrap { min-height: 390px; }
+      #cityMap { height: 380px; }
+    }
+    @media (max-width: 720px) {
+      .shell { padding: 12px 10px 22px; }
+      .topbar { align-items: flex-start; }
+      .top-status { flex-direction: column; align-items: flex-end; gap: 5px; }
+      .scenario-banner { align-items: flex-start; flex-direction: column; }
+      .scenario-control, .scenario-control select { width: 100%; }
+      .scenario-control select { min-width: 0; }
+      h1 { max-width: 220px; font-size: 16px; }
+      .toolbar { flex-wrap: wrap; }
+      .toolbar .spacer { flex-basis: 100%; height: 0; }
+      .toolbar-action { flex: 1 1 100%; }
+      .layout { grid-template-columns: 1fr; }
+      .right-column { grid-column: auto; grid-template-columns: 1fr; }
+      .map-panel { grid-row: 1; }
+      .map-wrap { min-height: 315px; }
+      #cityMap { height: 310px; }
+      .legend { gap: 6px; }
+      .legend span { font-size: 8px; }
+      .map-head-actions { gap: 5px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"><span>SR</span></div>
+        <div><div class="eyebrow">Emergency response network / SDG 3</div><h1>Dispatcher Operations</h1></div>
+      </div>
+      <div class="top-status"><span class="live" id="connection">Connecting</span><span id="clock">--:--:--</span></div>
+    </header>
+    <section class="scenario-banner" id="scenarioBanner" aria-label="Disaster simulation mode">
+      <div class="scenario-title"><strong>Disaster Simulation Mode</strong><span id="scenarioDescription">Normal operations · all primary routes available</span></div>
+      <div class="scenario-control"><label for="scenarioSelect">Scenario</label><select id="scenarioSelect"><option value="NORMAL_OPERATIONS">Normal Operations</option><option value="EARTHQUAKE_COLLAPSE">Earthquake &amp; Structural Collapse</option><option value="TSUNAMI_FLOOD_INUNDATION">Tsunami Surge</option></select></div>
+    </section>
+    <nav class="toolbar" aria-label="Dispatch commands">
+      <button class="button primary toolbar-action" id="dispatchButton">Dispatch Next Emergency (Auto Pipeline)</button>
+      <button class="button warn toolbar-action" id="spikeButton">Trigger Traffic Congestion Spike</button>
+      <button class="button toolbar-action" id="mciButton">Run Multi-Scene MCI Tour (Branch &amp; Bound)</button>
+      <span class="spacer"></span>
+      <span class="panel-meta">System clock <b id="localClock">--</b></span>
+    </nav>
+    <section class="layout">
+      <div class="column left-column">
+        <section class="panel">
+          <div class="panel-head"><h2>Built-in disaster demo</h2><span class="panel-meta">One-click examiner flows</span></div>
+          <div class="panel-body">
+            <div class="demo-actions">
+              <button class="button" id="loadCasualtiesButton">Load 10 Earthquake Casualties</button>
+              <button class="button warn" id="severBridgeButton">Sever Main Bridge</button>
+              <button class="button primary" id="divertHospitalButton">Divert to Field Hospital</button>
+            </div>
+            <p class="demo-note" id="disasterStatus">Six tagged disaster demo patients are preloaded at startup.</p>
+          </div>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><h2>Live triage radar</h2><span class="count" id="patientCount">0 WAITING</span></div>
+          <div class="panel-body"><div class="queue-list" id="queue"><div class="empty">Synchronizing triage queue...</div></div></div>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><h2>Patient intake</h2><span class="panel-meta">Dynamic acuity score</span></div>
+          <div class="panel-body">
+            <form id="admitForm" class="form-grid">
+              <div class="field"><label for="patientId">Patient ID</label><input id="patientId" name="patientId" placeholder="P-204" required maxlength="40"></div>
+              <div class="field"><label for="esiLevel">ESI acuity</label><select id="esiLevel" name="esiLevel"><option value="1">1 · Immediate</option><option value="2">2 · Emergent</option><option value="3" selected>3 · Urgent</option><option value="4">4 · Standard</option><option value="5">5 · Non-urgent</option></select></div>
+              <div class="field full"><label for="condition">Presenting condition</label><input id="condition" name="condition" placeholder="Chief complaint" required maxlength="100"></div>
+              <div class="field"><label for="age">Age</label><input id="age" name="age" type="number" min="0" max="130" value="35" required></div>
+              <div class="field"><label for="risk">Vitals risk · <span id="riskText">5.0</span></label><input id="risk" name="vitalsRiskScore" type="range" min="0" max="10" step="0.1" value="5"></div>
+              <input type="hidden" name="waitTimeMinutes" value="0">
+              <div class="field full form-actions"><span class="status-line" id="admitStatus">New cases join the live priority heap.</span><button class="button small primary" type="submit">Admit patient</button></div>
+            </form>
+          </div>
+        </section>
+      </div>
+      <div class="column center-column">
+        <section class="panel map-panel">
+          <div class="panel-head"><h2>City response map</h2><div class="map-head-actions"><div class="legend"><span><i></i>Fleet</span><span><i class="scene-dot"></i>Incident</span><span><i class="hospital-dot"></i>Hospital</span></div></div></div>
+          <div class="map-wrap">
+            <svg id="cityMap" viewBox="0 0 850 460" role="img" aria-label="Interactive city road network and ambulance routes">
+              <defs><pattern id="mapGrid" width="28" height="28" patternUnits="userSpaceOnUse"><path d="M 28 0 L 0 0 0 28" fill="none" stroke="#79908a" stroke-opacity=".08" stroke-width="1"/></pattern></defs>
+              <rect x="0" y="0" width="850" height="460" fill="url(#mapGrid)"/>
+              <g id="mapBackbone"></g><g id="mapRoute"></g><g id="mapRoads"></g><g id="mapNodes"></g><g id="mapVehicles"></g>
+            </svg>
+          </div>
+          <div class="map-footer"><span id="mapStatus">Road network loading</span><span class="route-text" id="routeStatus">Awaiting dispatch route</span></div>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><h2>Incident replay / telemetry audit</h2><span class="panel-meta" id="recordCount">0 frames</span></div>
+          <div class="panel-body">
+            <div class="timeline">
+              <label for="timeRange">Window ending <span id="rangeEndLabel">now</span></label>
+              <input id="timeRange" type="range" min="0" max="120" value="60" aria-label="Telemetry replay time window">
+              <div class="timeline-labels"><span id="rangeStartLabel">Last 60 sec</span><span id="rangeNowLabel">Live</span></div>
+            </div>
+            <div class="audit-list" id="auditList"><div class="empty">No telemetry loaded.</div></div>
+          </div>
+        </section>
+      </div>
+      <div class="column right-column">
+        <section class="panel">
+          <div class="panel-head"><h2>Medical payload</h2><span class="panel-meta">0/1 optimization</span></div>
+          <div class="panel-body">
+            <div class="field"><label for="capacity">Vehicle load limit · kg</label><input id="capacity" type="range" min="5" max="50" step="1" value="30"></div>
+            <div class="metric-row"><div><span class="metric" id="payloadWeight">--</span><span class="metric-unit"> / <span id="payloadCapacity">30</span> kg</span></div><div class="utility"><span id="payloadUtility">--</span> pts</div></div>
+            <div class="track"><span id="payloadProgress" style="width:0%"></span></div>
+            <div class="payload-list" id="payloadItems"></div>
+            <div class="payload-foot"><span>Selected discrete equipment</span><span id="payloadCount">0 items</span></div>
+          </div>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><h2>Traffic control</h2><span class="panel-meta">Live edge weighting</span></div>
+          <div class="panel-body">
+            <div class="form-grid">
+              <div class="field"><label for="roadFrom">From</label><select id="roadFrom"><option>Inter_B</option><option>Inter_C</option><option>AmbulanceDepot</option></select></div>
+              <div class="field"><label for="roadTo">To</label><select id="roadTo"><option>Inter_C</option><option>Inter_B</option><option>Inter_A</option></select></div>
+              <div class="field full"><label for="congestion">Congestion multiplier · <span id="congestionText">12.0×</span></label><input id="congestion" type="range" min="1" max="15" step="0.5" value="12"></div>
+              <div class="field full form-actions"><span class="status-line">Toolbar action applies the selected edge and reroutes.</span></div>
+            </div>
+          </div>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><h2>Mass casualty planner</h2><span class="panel-meta">Reduced-cost B&amp;B</span></div>
+          <div class="panel-body">
+            <div class="mci-tour" id="mciTour">Tour not calculated.</div>
+            <span class="prune-badge" id="mciPruneBadge">Pruned -- redundant branches</span>
+            <svg class="mci-map" id="mciMap" viewBox="0 0 320 100" role="img" aria-label="Mass casualty scene pickup tour"><g id="mciRouteGraphic"></g></svg>
+            <div class="mci-stats"><span><b id="mciLatency">--</b> min</span><span><b id="mciPruned">--</b> pruned</span><span><b id="mciPermutations">--</b> tours</span></div>
+            <div class="form-actions"><span class="status-line" id="mciStatus">Ready for scene planning.</span></div>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script>
+    const positions = {
+      AmbulanceDepot: [88, 244], Inter_A: [280, 100], Inter_B: [267, 352],
+      Inter_C: [492, 352], IncidentScene: [570, 190], TraumaCenter: [766, 82],
+      MetroGeneral: [766, 220], CityHeart: [766, 360], FieldHospital_North: [685, 414],
+      HeliPad_Alpha: [660, 34], DisasterZone_Sector4: [430, 225],
+      "Peripheral Ring Road": [540, 414], "Emergency Airway Corridor": [465, 62]
+    };
+    const labelNames = { AmbulanceDepot: "Depot", IncidentScene: "Incident scene", TraumaCenter: "Trauma Center", MetroGeneral: "Metro General", CityHeart: "City Heart", FieldHospital_North: "Field Hospital North", HeliPad_Alpha: "Helipad Alpha", DisasterZone_Sector4: "Disaster Sector 4", "Peripheral Ring Road": "Ring Road", "Emergency Airway Corridor": "Airway Corridor" };
+    const mciLocations = ["Command Post", "Scene Alpha", "Scene Bravo", "Scene Charlie"];
+    let lastTelemetryTimestamp = 0;
+    let latestNetwork = null;
+    let activeRouteNodes = [];
+    let toastTimer;
+    const $ = (selector) => document.querySelector(selector);
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[character]);
+    }
+    function notify(message, error = false) {
+      const toast = $("#toast"); toast.textContent = message; toast.style.borderColor = error ? "var(--coral)" : "var(--teal)";
+      toast.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove("show"), 3300);
+    }
+    async function request(url, options = {}) {
+      const response = await fetch(url, { ...options, headers: { "Content-Type": "application/json", ...(options.headers || {}) } });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+      return data;
+    }
+    function point(name) { return positions[name] || [420, 230]; }
+    function renderRouteHighlight() {
+      if (activeRouteNodes.length < 2) { $("#mapRoute").innerHTML = ""; return; }
+      const pathData = activeRouteNodes.map((node, index) => `${index ? "L" : "M"} ${point(node).join(" ")}`).join(" ");
+      $("#mapRoute").innerHTML = `<path class="route-glow" d="${pathData}"/>`;
+    }
+    function renderNetwork(network) {
+      latestNetwork = network;
+      const activeRoutePairs = new Set(activeRouteNodes.slice(1).map((node, index) =>
+        [activeRouteNodes[index], node].sort().join("|")));
+      const backbonePairs = new Set((network.mst?.edges || []).map((edge) => [edge.source, edge.target].sort().join("|")));
+      $("#mapBackbone").innerHTML = (network.mst?.edges || []).map((edge) => {
+        const [x1, y1] = point(edge.source), [x2, y2] = point(edge.target);
+        return `<line class="backbone" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+      }).join("");
+      const uniqueEdges = new Map();
+      for (const edge of network.edges || []) {
+        const key = [edge.source, edge.target].sort().join("|");
+        const prior = uniqueEdges.get(key);
+        if (!prior || edge.congestionFactor > prior.congestionFactor
+          || (edge.congestionFactor === prior.congestionFactor && edge.weightMinutes < prior.weightMinutes))
+          uniqueEdges.set(key, edge);
+      }
+      $("#mapRoads").innerHTML = [...uniqueEdges.values()].map((edge) => {
+        const [x1, y1] = point(edge.source), [x2, y2] = point(edge.target);
+        const congested = edge.congestionFactor > 1.01;
+        const blocked = edge.severed === true;
+        const inactive = edge.passable === false && !blocked;
+        const routeActive = activeRoutePairs.has([edge.source, edge.target].sort().join("|"));
+        const labelX = (x1 + x2) / 2, labelY = (y1 + y2) / 2 - 7;
+        const inMst = backbonePairs.has([edge.source, edge.target].sort().join("|"));
+        const roadClass = `road${congested ? " congested" : ""}${blocked ? " severed" : ""}${inactive ? " inactive" : ""}${routeActive ? " route-active" : ""}`;
+        const weightLabel = blocked ? "BLOCKED / RUBBLE" : `${Number(edge.weightMinutes).toFixed(1)}m${inMst ? " · backbone" : ""}`;
+        const crack = blocked
+          ? `<path class="rubble-crack" d="M ${labelX - 7} ${labelY - 5} l 5 5 -3 5 8 4"/>`
+          : "";
+        return `<g><line class="${roadClass}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/><text class="${blocked ? "blocked-label" : "road-label"}" x="${labelX}" y="${labelY}">${weightLabel}</text>${crack}</g>`;
+      }).join("");
+      const hospitalByName = new Map((network.disaster?.hospitals || []).map((hospital) => [hospital.name, hospital]));
+      $("#mapNodes").innerHTML = (network.nodes || []).map((node) => {
+        const [x, y] = point(node);
+        const hospital = node.includes("Center") || node.includes("General") || node.includes("Heart") || node.startsWith("FieldHospital") || node.startsWith("HeliPad");
+        const status = network.nodeStatus?.[node] || "ACTIVE";
+        const kind = node === "AmbulanceDepot" ? "depot" : node === "IncidentScene" ? "scene"
+          : node.startsWith("FieldHospital") && status === "ACTIVE" ? "field-hospital"
+            : hospital ? `hospital${status === "OFFLINE" ? " offline" : ""}` : "";
+        const inactive = status === "INACTIVE" ? " inactive" : "";
+        const statusLabel = status === "OFFLINE"
+          ? `<text class="node-status-label" x="${x}" y="${y + 37}">OFFLINE</text>`
+          : node.startsWith("FieldHospital") && status === "ACTIVE"
+            ? `<text class="field-status-label" x="${x}" y="${y + 37}">FIELD HOSPITAL · ${hospitalByName.get(node)?.beds ?? 0} BEDS</text>`
+            : node.startsWith("HeliPad") && status === "ACTIVE"
+              ? `<text class="field-status-label" x="${x}" y="${y + 37}">HELIPAD · ${hospitalByName.get(node)?.beds ?? 0} BEDS</text>` : "";
+        return `<g><circle class="node-dot ${kind}${inactive}" cx="${x}" cy="${y}" r="${hospital ? 8 : 7}"/><text class="node-label" x="${x}" y="${y + 23}">${escapeHtml(labelNames[node] || node)}</text>${statusLabel}</g>`;
+      }).join("");
+      renderRouteHighlight();
+      const totalLatency = Number.isFinite(network.mst?.totalLatency) ? `${network.mst.totalLatency.toFixed(1)} min` : "disconnected";
+      $("#mapStatus").textContent = `${network.nodes.length} road nodes · ${network.edges.length} directed links · MST ${totalLatency}`;
+      const scenario = network.disaster?.scenario || "NORMAL_OPERATIONS";
+      $("#scenarioSelect").value = scenario;
+      const descriptions = {
+        NORMAL_OPERATIONS: "Normal operations · all primary routes available",
+        EARTHQUAKE_COLLAPSE: "Structural collapse · bridges severed · field hospitals active",
+        TSUNAMI_FLOOD_INUNDATION: "Tsunami surge · changing water levels · high-ground evacuation"
+      };
+      $("#scenarioDescription").textContent = descriptions[scenario] || scenario;
+      $("#scenarioBanner").classList.toggle("earthquake", scenario === "EARTHQUAKE_COLLAPSE");
+      $("#scenarioBanner").classList.toggle("tsunami", scenario === "TSUNAMI_FLOOD_INUNDATION");
+      $("#disasterStatus").textContent = `${network.disaster?.temporaryPatients || 0} scenario casualties loaded · ${network.disaster?.preferredHospital || "no facility diversion"}`;
+    }
+    function renderQueue(data) {
+      const patients = data.patients || [];
+      $("#patientCount").textContent = `${patients.length} WAITING`;
+      if (!patients.length) { $("#queue").innerHTML = '<div class="empty">No patients currently waiting.</div>'; return; }
+      const highest = Math.max(1, ...patients.map((patient) => patient.priorityScore));
+      $("#queue").innerHTML = patients.map((patient, index) => {
+        const scorePercent = Math.min(100, patient.priorityScore / highest * 100);
+        const agingPercent = Math.min(100, patient.waitTimeMinutes / 60 * 100);
+        const tag = patient.disasterTriageTag || "YELLOW";
+        return `<article class="patient${tag === "RED" ? " critical" : ""}" style="animation-delay:${Math.min(index, 8) * 25}ms"><div class="patient-head"><span class="patient-id">${escapeHtml(patient.patientId)}</span><span class="triage-tag ${tag.toLowerCase()}">${tag} · ESI ${patient.esiLevel}</span></div><div class="patient-name">${escapeHtml(patient.patientName || patient.patientId)}</div><div class="condition">${escapeHtml(patient.condition)}</div><div class="score-row"><span>Priority ${patient.priorityScore.toFixed(1)}</span><span>${patient.waitTimeMinutes} min waiting · ${patient.age}y</span></div><div class="track" title="Priority relative to the queue"><span style="width:${scorePercent}%"></span></div><div class="score-row" style="margin-top:5px"><span>Wait aging</span><span>${agingPercent.toFixed(0)}%</span></div></article>`;
+      }).join("");
+    }
+    async function refreshQueue() { renderQueue(await request("/api/triage/queue")); }
+    async function refreshNetwork() { renderNetwork(await request("/api/network")); }
+    async function changeDisasterScenario(scenarioName) {
+      try {
+        await request("/api/disaster/scenario", { method: "POST", body: JSON.stringify({ scenarioName }) });
+        await Promise.all([refreshNetwork(), refreshQueue(), refreshPayload()]);
+        notify(`Scenario changed to ${$("#scenarioSelect").selectedOptions[0].textContent}.`);
+      } catch (error) {
+        $("#scenarioSelect").value = latestNetwork?.disaster?.scenario || "NORMAL_OPERATIONS";
+        notify(error.message, true);
+      }
+    }
+    async function runDisasterAction(url, successMessage, refreshQueueAfter = false) {
+      try {
+        await request(url, { method: "POST", body: "{}" });
+        await Promise.all([refreshNetwork(), ...(refreshQueueAfter ? [refreshQueue()] : [])]);
+        notify(successMessage);
+      } catch (error) { notify(error.message, true); }
+    }
+    async function refreshPayload() {
+      const capacity = Number($("#capacity").value); $("#payloadCapacity").textContent = capacity;
+      const result = await request(`/api/resources/payload?capacity=${capacity}`);
+      $("#payloadWeight").textContent = result.weightKg; $("#payloadUtility").textContent = result.utilityScore;
+      $("#payloadProgress").style.width = `${Math.min(100, result.weightKg / capacity * 100)}%`;
+      $("#payloadCount").textContent = `${result.items.length} items`;
+      $("#payloadItems").innerHTML = result.items.map((item) => `<div class="item-row"><span class="item-name">${escapeHtml(item.name)}</span><span class="item-value">${item.weightKg}kg · ${item.utilityScore} pts</span><div class="item-bar"><span style="width:${Math.min(100, item.weightKg / capacity * 100)}%"></span></div></div>`).join("") || '<div class="empty">No items fit this capacity.</div>';
+    }
+    function renderTelemetry(data) {
+      const records = data.records || [];
+      $("#recordCount").textContent = `${records.length} frame${records.length === 1 ? "" : "s"}`;
+      if (!records.length) { $("#auditList").innerHTML = '<div class="empty">No records in this time window.</div>'; return; }
+      $("#auditList").innerHTML = records.map((record) => {
+        const time = new Date(record.timestamp * 1000).toLocaleTimeString([], { hour12: false });
+        return `<div class="audit-record"><time>${time}</time><span>${escapeHtml(record.vehicleId)} · ${escapeHtml(record.status)}</span><small>${record.lat.toFixed(3)}, ${record.lon.toFixed(3)}</small></div>`;
+      }).join("");
+      lastTelemetryTimestamp = Math.max(lastTelemetryTimestamp, ...records.map((record) => record.timestamp));
+    }
+    async function refreshTelemetry() {
+      const now = Math.floor(Date.now() / 1000), windowSeconds = Number($("#timeRange").value);
+      const end = now, start = Math.max(0, now - windowSeconds);
+      $("#rangeStartLabel").textContent = new Date(start * 1000).toLocaleTimeString([], { hour12: false });
+      $("#rangeEndLabel").textContent = new Date(end * 1000).toLocaleTimeString([], { hour12: false });
+      renderTelemetry(await request(`/api/telemetry/query?start=${start}&end=${end}`));
+    }
+    function normalizeMciResult(result) {
+      if (Array.isArray(result.tourIndices)) return result;
+      const tour = result.tour || [];
+      let tourIndices;
+      if (tour[0] === mciLocations[0]) {
+        tourIndices = tour.map((location) => mciLocations.indexOf(location));
+      } else {
+        const successors = tour.slice(0, -1).map((location) => mciLocations.indexOf(location));
+        tourIndices = [0];
+        let current = 0;
+        for (let step = 0; step < mciLocations.length; step++) {
+          current = successors[current];
+          if (!Number.isInteger(current) || current < 0) break;
+          tourIndices.push(current);
+          if (current === 0) break;
+        }
+      }
+      const prunedPercent = result.totalPermutations
+        ? result.prunedBranches * 100 / result.totalPermutations : 0;
+      return { ...result, tourIndices, tour: tourIndices.map((index) => mciLocations[index]), prunedPercent };
+    }
+    function animateRoute(data) {
+      const nodes = [...(data.route.toScene.nodes || []), ...(data.route.toHospital.nodes || []).slice(1)];
+      if (!nodes.length) return;
+      activeRouteNodes = nodes;
+      renderRouteHighlight();
+      const pathData = nodes.map((node, index) => `${index ? "L" : "M"} ${point(node).join(" ")}`).join(" ");
+      const namespace = "http://www.w3.org/2000/svg";
+      const group = $("#mapVehicles"); group.innerHTML = "";
+      const halo = document.createElementNS(namespace, "circle"); halo.setAttribute("class", "vehicle-halo"); halo.setAttribute("r", "11");
+      const haloMotion = document.createElementNS(namespace, "animateMotion"); haloMotion.setAttribute("dur", "7s"); haloMotion.setAttribute("repeatCount", "2"); haloMotion.setAttribute("path", pathData); halo.append(haloMotion); group.append(halo);
+      const vehicle = document.createElementNS(namespace, "circle"); vehicle.setAttribute("class", "vehicle"); vehicle.setAttribute("r", "6");
+      const motion = document.createElementNS(namespace, "animateMotion"); motion.setAttribute("dur", "7s"); motion.setAttribute("repeatCount", "2"); motion.setAttribute("path", pathData); vehicle.append(motion); group.append(vehicle);
+      $("#routeStatus").textContent = `${data.vehicleId}: ${nodes.map((node) => labelNames[node] || node).join(" → ")} · ${data.route.totalMinutes.toFixed(1)} min`;
+    }
+    async function dispatch() {
+      try {
+        const result = await request("/api/dispatch/execute", { method: "POST", body: "{}" });
+        animateRoute(result); notify(`Dispatch ${result.dispatchId} assigned to ${result.hospital}.`);
+        await Promise.all([refreshQueue(), refreshNetwork(), refreshTelemetry(), refreshPayload()]);
+      } catch (error) { notify(error.message, true); }
+    }
+    async function solveMci() {
+      $("#mciStatus").textContent = "Optimizing scene circuit…";
+      try {
+        const result = normalizeMciResult(await request("/api/mci/solve"));
+        $("#mciTour").textContent = result.reachable ? result.tourIndices.join(" → ") : "No complete tour available.";
+        $("#mciPruneBadge").textContent = `Pruned ${result.prunedPercent.toFixed(1)}% redundant branches`;
+        renderMciRoute(result);
+        $("#mciLatency").textContent = result.reachable ? result.totalLatencyMinutes : "—";
+        $("#mciPruned").textContent = result.prunedBranches;
+        $("#mciPermutations").textContent = result.totalPermutations;
+        $("#mciStatus").textContent = `${result.exploredNodes} search nodes evaluated.`;
+      } catch (error) { $("#mciStatus").textContent = error.message; }
+    }
+    function renderMciRoute(result) {
+      const points = { "Command Post": [26, 48], "Scene Alpha": [112, 22], "Scene Bravo": [220, 22], "Scene Charlie": [294, 58] };
+      if (!result.reachable) { $("#mciRouteGraphic").innerHTML = ""; return; }
+      const routePoints = result.tour.map((name) => points[name]).filter(Boolean);
+      const path = routePoints.map(([x, y], index) => `${index ? "L" : "M"}${x},${y}`).join(" ");
+      const labels = result.tour.slice(0, -1).map((name, index) => {
+        const [x, y] = points[name];
+        return `<g><circle class="mci-stop" cx="${x}" cy="${y}" r="7"/><text class="mci-stop-number" x="${x}" y="${y + 3}">${result.tourIndices[index]}</text><text class="mci-stop-label" x="${x}" y="${y + (y < 50 ? -11 : 18)}">${escapeHtml(name.replace("Scene ", ""))}</text></g>`;
+      }).join("");
+      $("#mciRouteGraphic").innerHTML = `<path class="mci-route-line" d="${path}"/>${labels}`;
+    }
+    async function applyCongestion() {
+      const from = $("#roadFrom").value, to = $("#roadTo").value;
+      try {
+        const result = await request("/api/congestion/spike", { method: "POST", body: JSON.stringify({ from, to, congestionMultiplier: Number($("#congestion").value) }) });
+        activeRouteNodes = result.reroutedPath.nodes;
+        renderRouteHighlight();
+        $("#routeStatus").textContent = `Rerouted: ${result.reroutedPath.nodes.join(" → ")} · ${result.reroutedPath.totalMinutes.toFixed(1)} min`;
+        await refreshNetwork(); notify(`Congestion updated on ${from} → ${to}.`);
+      } catch (error) { notify(error.message, true); }
+    }
+    $("#admitForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = new FormData(event.currentTarget);
+      const payload = Object.fromEntries(form.entries());
+      payload.esiLevel = Number(payload.esiLevel); payload.age = Number(payload.age);
+      payload.waitTimeMinutes = Number(payload.waitTimeMinutes); payload.vitalsRiskScore = Number($("#risk").value);
+      $("#admitStatus").textContent = "Submitting patient…";
+      try {
+        const result = await request("/api/triage/admit", { method: "POST", body: JSON.stringify(payload) });
+        $("#admitStatus").textContent = `Admitted · score ${result.patient.priorityScore.toFixed(1)}`;
+        event.currentTarget.reset(); $("#age").value = 35; $("#risk").value = 5; $("#riskText").textContent = "5.0";
+        await refreshQueue(); notify(`${result.patient.patientId} admitted to triage.`);
+      } catch (error) { $("#admitStatus").textContent = error.message; }
+    });
+    $("#risk").addEventListener("input", (event) => { $("#riskText").textContent = Number(event.target.value).toFixed(1); });
+    $("#capacity").addEventListener("input", refreshPayload);
+    $("#congestion").addEventListener("input", (event) => { $("#congestionText").textContent = `${Number(event.target.value).toFixed(1)}×`; });
+    $("#timeRange").addEventListener("input", refreshTelemetry);
+    $("#dispatchButton").addEventListener("click", dispatch);
+    $("#spikeButton").addEventListener("click", applyCongestion);
+    $("#mciButton").addEventListener("click", solveMci);
+    $("#scenarioSelect").addEventListener("change", (event) => changeDisasterScenario(event.target.value));
+    $("#loadCasualtiesButton").addEventListener("click", () => runDisasterAction(
+      "/api/disaster/casualties", "Earthquake casualty set loaded.", true));
+    $("#severBridgeButton").addEventListener("click", () => runDisasterAction(
+      "/api/disaster/sever-main-bridge", "Main bridge severed. Route availability updated."));
+    $("#divertHospitalButton").addEventListener("click", () => runDisasterAction(
+      "/api/disaster/divert-field-hospital", "Field Hospital North is active and selected for diversion."));
+    async function refreshAll(showError = false) {
+      try {
+        await Promise.all([refreshNetwork(), refreshQueue(), refreshPayload(), refreshTelemetry()]);
+        $("#connection").textContent = "Connected";
+        $("#connection").style.color = "var(--teal)";
+      } catch (error) {
+        $("#connection").textContent = "Link interrupted";
+        $("#connection").style.color = "var(--coral)";
+        if (showError) notify(error.message, true);
+      }
+    }
+    function updateClock() {
+      const now = new Date();
+      $("#clock").textContent = now.toLocaleTimeString([], { hour12: false });
+      $("#localClock").textContent = now.toLocaleDateString([], { weekday: "short", hour: "2-digit", minute: "2-digit" });
+    }
+    updateClock(); refreshAll(); solveMci();
+    setInterval(updateClock, 1000);
+    setInterval(refreshAll, 5000);
+  </script>
+</body>
+</html>
