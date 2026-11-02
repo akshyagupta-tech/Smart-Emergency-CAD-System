@@ -168,6 +168,8 @@
     .mci-stats b { color: var(--amber); font-variant-numeric: tabular-nums; }
     .toast { position: fixed; right: 20px; bottom: 20px; z-index: 4; max-width: min(400px, calc(100vw - 40px)); padding: 11px 14px; border: 1px solid #55716b; border-radius: 4px; color: var(--ink); background: #20302e; box-shadow: 0 8px 24px #0008; font-size: 12px; opacity: 0; pointer-events: none; transform: translateY(8px); transition: .2s ease; }
     .toast.show { opacity: 1; transform: translateY(0); }
+    .shell.role-entering { animation: role-enter .38s ease-out both; }
+    @keyframes role-enter { from { opacity: .35; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
     [hidden] { display: none !important; }
     .login-overlay { position: fixed; inset: 0; z-index: 20; display: grid; align-items: start; justify-items: center; overflow-y: auto; padding: 18px; background: rgba(6,12,14,.88); backdrop-filter: blur(12px); }
     body.auth-locked .shell { visibility: hidden; }
@@ -175,8 +177,21 @@
     .login-card h2 { margin: 8px 0 5px; font: 650 22px var(--display); text-transform: none; letter-spacing: 0; }
     .login-copy { margin: 0 0 18px; color: var(--muted); font-size: 12px; line-height: 1.6; }
     .login-form { display: grid; gap: 10px; }
-    .login-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; }
-    .login-actions .button { min-height: 40px; text-align: left; }
+    .login-demo { margin-top: 17px; padding-top: 13px; border-top: 1px solid var(--line); }
+    .login-demo-heading { display: grid; gap: 4px; margin-bottom: 9px; }
+    .login-demo-heading strong { color: var(--ink); font: 700 11px var(--display); text-transform: uppercase; }
+    .login-demo-heading span { color: var(--muted); font-size: 10px; }
+    .login-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .login-actions .demo-login { display: grid; grid-template-columns: 25px minmax(0,1fr); align-items: center; gap: 3px 8px; min-height: 54px; padding: 7px 9px; text-align: left; transition: background .16s ease, border-color .16s ease, transform .16s ease; }
+    .login-actions .demo-login:hover { transform: translateY(-1px); border-color: #5d8a7f; background: #243533; }
+    .demo-login.wide { grid-column: 1 / -1; }
+    .demo-icon { grid-row: span 2; font-size: 18px; text-align: center; }
+    .demo-title { min-width: 0; color: var(--ink); font-size: 10px; font-weight: 700; overflow-wrap: anywhere; }
+    .demo-badge { justify-self: start; padding: 2px 5px; border: 1px solid rgba(84,214,177,.32); border-radius: 2px; color: var(--teal); background: rgba(84,214,177,.07); font: 700 8px var(--display); }
+    .demo-login.doctor .demo-badge { color: var(--blue); border-color: rgba(131,185,223,.36); background: rgba(131,185,223,.08); }
+    .demo-login.director .demo-badge { color: var(--amber); border-color: rgba(240,182,95,.36); background: rgba(240,182,95,.08); }
+    .demo-login.paramedic .demo-badge { color: #b6d57c; border-color: rgba(182,213,124,.35); background: rgba(182,213,124,.08); }
+    .demo-login.citizen .demo-badge { color: var(--coral); border-color: rgba(242,117,104,.36); background: rgba(242,117,104,.08); }
     .login-error { min-height: 15px; margin: 8px 0 0; color: var(--coral); font-size: 11px; }
     .role-caption { color: var(--teal); font: 700 10px var(--display); text-transform: uppercase; letter-spacing: .8px; }
     .role-stats { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; }
@@ -205,6 +220,7 @@
     .user-tools { display: flex; align-items: center; gap: 8px; }
     @media (max-width: 720px) {
       .login-actions { grid-template-columns: 1fr; }
+      .demo-login.wide { grid-column: auto; }
       .role-stats { grid-template-columns: repeat(2, minmax(0,1fr)); }
       .vitals-control { grid-template-columns: 1fr auto; }
       .vitals-control input { grid-column: 1 / -1; grid-row: 2; }
@@ -256,13 +272,16 @@
         <div class="field"><label for="loginPassword">Password</label><input id="loginPassword" name="password" type="password" autocomplete="current-password" required></div>
         <button class="button primary" type="submit">Sign in</button>
       </form>
-      <div class="login-actions" aria-label="Examiner quick access">
-        <button class="button" data-demo-role="DISPATCHER">Login as Dispatcher</button>
-        <button class="button" data-demo-role="DOCTOR">Login as Trauma Doctor</button>
-        <button class="button" data-demo-role="MEDICAL_DIRECTOR">Login as Medical Director (MD)</button>
-        <button class="button" data-demo-role="PARAMEDIC">Login as Paramedic</button>
-        <button class="button warn" id="citizenAccess">Public SOS Portal</button>
-      </div>
+      <section class="login-demo" aria-label="Quick Demo Logins">
+        <div class="login-demo-heading"><strong>Quick Demo Logins</strong><span>Evaluation Mode: Click any role below for instant access</span></div>
+        <div class="login-actions">
+          <button class="button demo-login dispatcher" data-demo-role="DISPATCHER"><span class="demo-icon" aria-hidden="true">🚑</span><span class="demo-title">Dispatcher (City CAD)</span><span class="demo-badge">DISPATCHER</span></button>
+          <button class="button demo-login doctor" data-demo-role="DOCTOR"><span class="demo-icon" aria-hidden="true">🩺</span><span class="demo-title">Trauma Doctor (ER)</span><span class="demo-badge">DOCTOR</span></button>
+          <button class="button demo-login director" data-demo-role="MEDICAL_DIRECTOR"><span class="demo-icon" aria-hidden="true">🏢</span><span class="demo-title">Medical Director (MD)</span><span class="demo-badge">DIRECTOR</span></button>
+          <button class="button demo-login paramedic" data-demo-role="PARAMEDIC"><span class="demo-icon" aria-hidden="true">🩹</span><span class="demo-title">Paramedic Crew (AMB-01)</span><span class="demo-badge">PARAMEDIC</span></button>
+          <button class="button demo-login citizen wide" id="citizenAccess"><span class="demo-icon" aria-hidden="true">🆘</span><span class="demo-title">Public / Citizen (SOS)</span><span class="demo-badge">PUBLIC PORTAL</span></button>
+        </div>
+      </section>
       <p class="login-error" id="loginError" role="alert"></p>
     </div>
   </section>
@@ -449,8 +468,20 @@
       sessionStorage.setItem("cad.auth.session", JSON.stringify({ token, role, username }));
       $("#loginOverlay").hidden = true;
       document.body.classList.remove("auth-locked");
+      const shell = document.querySelector(".shell");
+      shell.classList.remove("role-entering");
+      void shell.offsetWidth;
+      shell.classList.add("role-entering");
+      setTimeout(() => shell.classList.remove("role-entering"), 500);
       $("#logoutButton").hidden = false;
-      $("#roleLabel").textContent = `${role.replaceAll("_", " ")} · ${username}`;
+      const roleBadges = {
+        DISPATCHER: "City CAD",
+        DOCTOR: "ER Team",
+        MEDICAL_DIRECTOR: "MD",
+        PARAMEDIC: "AMB-01 Crew",
+        CITIZEN: "Public SOS"
+      };
+      $("#roleLabel").textContent = `Logged in as: ${role} · ${roleBadges[role] || username}`;
       $("#operationsLayout").hidden = role === "CITIZEN";
       $("#citizenView").hidden = role !== "CITIZEN";
       document.querySelectorAll("[data-roles]").forEach((element) => {
@@ -763,6 +794,8 @@
     });
     document.querySelectorAll("[data-demo-role]").forEach((button) => button.addEventListener("click", () => {
       const account = demoAccounts[button.dataset.demoRole];
+      $("#loginUsername").value = account.username;
+      $("#loginPassword").value = account.password;
       signIn(account.username, account.password);
     }));
     $("#citizenAccess").addEventListener("click", enterCitizenPortal);
