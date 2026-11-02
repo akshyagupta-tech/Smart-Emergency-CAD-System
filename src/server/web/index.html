@@ -168,6 +168,47 @@
     .mci-stats b { color: var(--amber); font-variant-numeric: tabular-nums; }
     .toast { position: fixed; right: 20px; bottom: 20px; z-index: 4; max-width: min(400px, calc(100vw - 40px)); padding: 11px 14px; border: 1px solid #55716b; border-radius: 4px; color: var(--ink); background: #20302e; box-shadow: 0 8px 24px #0008; font-size: 12px; opacity: 0; pointer-events: none; transform: translateY(8px); transition: .2s ease; }
     .toast.show { opacity: 1; transform: translateY(0); }
+    [hidden] { display: none !important; }
+    .login-overlay { position: fixed; inset: 0; z-index: 20; display: grid; align-items: start; justify-items: center; overflow-y: auto; padding: 18px; background: rgba(6,12,14,.88); backdrop-filter: blur(12px); }
+    body.auth-locked .shell { visibility: hidden; }
+    .login-card { width: min(460px, 100%); margin: auto 0; padding: 24px; border: 1px solid #3c5954; border-top: 3px solid var(--teal); background: linear-gradient(145deg, #1d292b, #121a1d); box-shadow: 0 24px 80px #0009; animation: appear .24s ease both; }
+    .login-card h2 { margin: 8px 0 5px; font: 650 22px var(--display); text-transform: none; letter-spacing: 0; }
+    .login-copy { margin: 0 0 18px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .login-form { display: grid; gap: 10px; }
+    .login-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; }
+    .login-actions .button { min-height: 40px; text-align: left; }
+    .login-error { min-height: 15px; margin: 8px 0 0; color: var(--coral); font-size: 11px; }
+    .role-caption { color: var(--teal); font: 700 10px var(--display); text-transform: uppercase; letter-spacing: .8px; }
+    .role-stats { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; }
+    .role-stat { padding: 13px; border-left: 2px solid var(--teal); background: rgba(8,15,17,.4); }
+    .role-stat span { display: block; color: var(--muted); font-size: 10px; }
+    .role-stat strong { display: block; margin-top: 5px; color: var(--ink); font: 650 22px var(--display); font-variant-numeric: tabular-nums; }
+    .bed-list { display: grid; gap: 7px; }
+    .bed-row { display: grid; grid-template-columns: 1fr auto; gap: 3px 8px; padding: 9px; background: rgba(8,15,17,.36); }
+    .bed-row strong { font: 650 11px var(--display); }
+    .bed-row .bed-state { color: var(--teal); font-size: 10px; }
+    .bed-row .bed-state.full { color: var(--coral); }
+    .bed-row small { grid-column: 1 / -1; color: var(--muted); font-size: 9px; }
+    .vitals-control { display: grid; grid-template-columns: 1fr 135px auto; gap: 8px; align-items: center; margin-top: 8px; }
+    .vitals-control input { min-height: 16px; }
+    .active-assignment { display: grid; gap: 9px; }
+    .assignment-state { color: var(--amber); font: 700 12px var(--display); }
+    .assignment-route { color: var(--teal); font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; }
+    .citizen-view { max-width: 720px; margin: 28px auto; }
+    .sos-card { padding: 22px; border: 1px solid rgba(242,117,104,.45); border-left: 4px solid var(--coral); background: linear-gradient(135deg, rgba(55,35,34,.72), rgba(24,33,36,.95)); }
+    .sos-card h2 { font: 650 20px var(--display); text-transform: none; letter-spacing: 0; }
+    .sos-card p { color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .sos-eta { display: flex; justify-content: space-between; align-items: center; margin: 16px 0; padding: 12px; border: 1px solid var(--line); background: rgba(8,15,17,.4); }
+    .sos-eta strong { color: var(--teal); font: 700 19px var(--display); }
+    .sos-form { display: grid; gap: 9px; }
+    .sos-form textarea { width: 100%; min-height: 76px; resize: vertical; border: 1px solid #3a4b4d; border-radius: 3px; background: #111a1d; color: var(--ink); padding: 8px; font: inherit; }
+    .user-tools { display: flex; align-items: center; gap: 8px; }
+    @media (max-width: 720px) {
+      .login-actions { grid-template-columns: 1fr; }
+      .role-stats { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .vitals-control { grid-template-columns: 1fr auto; }
+      .vitals-control input { grid-column: 1 / -1; grid-row: 2; }
+    }
     @keyframes pulse { 50% { opacity: .38; } }
     @keyframes appear { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
     @keyframes traffic { to { stroke-dashoffset: -26; } }
@@ -203,29 +244,50 @@
     }
   </style>
 </head>
-<body>
+<body class="auth-locked">
+  <section class="login-overlay" id="loginOverlay" aria-label="CAD secure login">
+    <div class="login-card">
+      <div class="brand-mark" aria-hidden="true"><span>SR</span></div>
+      <div class="eyebrow">Secure operations access</div>
+      <h2>Sign in to response operations</h2>
+      <p class="login-copy">Choose an examiner role or enter an account. Public SOS access does not require an account.</p>
+      <form class="login-form" id="loginForm">
+        <div class="field"><label for="loginUsername">Username</label><input id="loginUsername" name="username" autocomplete="username" required></div>
+        <div class="field"><label for="loginPassword">Password</label><input id="loginPassword" name="password" type="password" autocomplete="current-password" required></div>
+        <button class="button primary" type="submit">Sign in</button>
+      </form>
+      <div class="login-actions" aria-label="Examiner quick access">
+        <button class="button" data-demo-role="DISPATCHER">Login as Dispatcher</button>
+        <button class="button" data-demo-role="DOCTOR">Login as Trauma Doctor</button>
+        <button class="button" data-demo-role="MEDICAL_DIRECTOR">Login as Medical Director (MD)</button>
+        <button class="button" data-demo-role="PARAMEDIC">Login as Paramedic</button>
+        <button class="button warn" id="citizenAccess">Public SOS Portal</button>
+      </div>
+      <p class="login-error" id="loginError" role="alert"></p>
+    </div>
+  </section>
   <main class="shell">
     <header class="topbar">
       <div class="brand">
         <div class="brand-mark" aria-hidden="true"><span>SR</span></div>
         <div><div class="eyebrow">Emergency response network / SDG 3</div><h1>Dispatcher Operations</h1></div>
       </div>
-      <div class="top-status"><span class="live" id="connection">Connecting</span><span id="clock">--:--:--</span></div>
+      <div class="top-status"><span class="live" id="connection">Connecting</span><span id="clock">--:--:--</span><span class="user-tools"><span id="roleLabel">Locked</span><button class="button small" id="logoutButton" hidden>Logout / Switch Role</button></span></div>
     </header>
-    <section class="scenario-banner" id="scenarioBanner" aria-label="Disaster simulation mode">
+    <section class="scenario-banner" id="scenarioBanner" data-roles="DISPATCHER,MEDICAL_DIRECTOR" aria-label="Disaster simulation mode">
       <div class="scenario-title"><strong>Disaster Simulation Mode</strong><span id="scenarioDescription">Normal operations · all primary routes available</span></div>
       <div class="scenario-control"><label for="scenarioSelect">Scenario</label><select id="scenarioSelect"><option value="NORMAL_OPERATIONS">Normal Operations</option><option value="EARTHQUAKE_COLLAPSE">Earthquake &amp; Structural Collapse</option><option value="TSUNAMI_FLOOD_INUNDATION">Tsunami Surge</option></select></div>
     </section>
     <nav class="toolbar" aria-label="Dispatch commands">
-      <button class="button primary toolbar-action" id="dispatchButton">Dispatch Next Emergency (Auto Pipeline)</button>
-      <button class="button warn toolbar-action" id="spikeButton">Trigger Traffic Congestion Spike</button>
-      <button class="button toolbar-action" id="mciButton">Run Multi-Scene MCI Tour (Branch &amp; Bound)</button>
+      <button class="button primary toolbar-action" id="dispatchButton" data-roles="DISPATCHER,MEDICAL_DIRECTOR">Dispatch Next Emergency (Auto Pipeline)</button>
+      <button class="button warn toolbar-action" id="spikeButton" data-roles="DISPATCHER">Trigger Traffic Congestion Spike</button>
+      <button class="button toolbar-action" id="mciButton" data-roles="DISPATCHER,MEDICAL_DIRECTOR">Run Multi-Scene MCI Tour (Branch &amp; Bound)</button>
       <span class="spacer"></span>
       <span class="panel-meta">System clock <b id="localClock">--</b></span>
     </nav>
-    <section class="layout">
+    <section class="layout" id="operationsLayout" hidden>
       <div class="column left-column">
-        <section class="panel">
+        <section class="panel" data-roles="DISPATCHER,MEDICAL_DIRECTOR">
           <div class="panel-head"><h2>Built-in disaster demo</h2><span class="panel-meta">One-click examiner flows</span></div>
           <div class="panel-body">
             <div class="demo-actions">
@@ -236,11 +298,11 @@
             <p class="demo-note" id="disasterStatus">Six tagged disaster demo patients are preloaded at startup.</p>
           </div>
         </section>
-        <section class="panel">
+        <section class="panel" data-roles="DISPATCHER,DOCTOR">
           <div class="panel-head"><h2>Live triage radar</h2><span class="count" id="patientCount">0 WAITING</span></div>
           <div class="panel-body"><div class="queue-list" id="queue"><div class="empty">Synchronizing triage queue...</div></div></div>
         </section>
-        <section class="panel">
+        <section class="panel" data-roles="DISPATCHER">
           <div class="panel-head"><h2>Patient intake</h2><span class="panel-meta">Dynamic acuity score</span></div>
           <div class="panel-body">
             <form id="admitForm" class="form-grid">
@@ -254,9 +316,21 @@
             </form>
           </div>
         </section>
+        <section class="panel" data-roles="DOCTOR">
+          <div class="panel-head"><h2>Hospital bed status</h2><span class="panel-meta">ICU &amp; specialty bays</span></div>
+          <div class="panel-body"><div class="bed-list" id="bedList"><div class="empty">Loading facilities…</div></div></div>
+        </section>
+        <section class="panel" data-roles="PARAMEDIC">
+          <div class="panel-head"><h2>Active ambulance assignment</h2><span class="panel-meta">Dispatch handoff</span></div>
+          <div class="panel-body"><div class="active-assignment" id="activeAssignment"><div class="empty">No active assignment.</div></div></div>
+        </section>
+        <section class="panel" data-roles="MEDICAL_DIRECTOR">
+          <div class="panel-head"><h2>System overview</h2><span class="panel-meta">Macro operations</span></div>
+          <div class="panel-body"><div class="role-stats" id="directorStats"></div></div>
+        </section>
       </div>
       <div class="column center-column">
-        <section class="panel map-panel">
+        <section class="panel map-panel" data-roles="DISPATCHER">
           <div class="panel-head"><h2>City response map</h2><div class="map-head-actions"><div class="legend"><span><i></i>Fleet</span><span><i class="scene-dot"></i>Incident</span><span><i class="hospital-dot"></i>Hospital</span></div></div></div>
           <div class="map-wrap">
             <svg id="cityMap" viewBox="0 0 850 460" role="img" aria-label="Interactive city road network and ambulance routes">
@@ -267,7 +341,7 @@
           </div>
           <div class="map-footer"><span id="mapStatus">Road network loading</span><span class="route-text" id="routeStatus">Awaiting dispatch route</span></div>
         </section>
-        <section class="panel">
+        <section class="panel" data-roles="MEDICAL_DIRECTOR">
           <div class="panel-head"><h2>Incident replay / telemetry audit</h2><span class="panel-meta" id="recordCount">0 frames</span></div>
           <div class="panel-body">
             <div class="timeline">
@@ -280,7 +354,7 @@
         </section>
       </div>
       <div class="column right-column">
-        <section class="panel">
+        <section class="panel" data-roles="PARAMEDIC,DISPATCHER">
           <div class="panel-head"><h2>Medical payload</h2><span class="panel-meta">0/1 optimization</span></div>
           <div class="panel-body">
             <div class="field"><label for="capacity">Vehicle load limit · kg</label><input id="capacity" type="range" min="5" max="50" step="1" value="30"></div>
@@ -290,7 +364,7 @@
             <div class="payload-foot"><span>Selected discrete equipment</span><span id="payloadCount">0 items</span></div>
           </div>
         </section>
-        <section class="panel">
+        <section class="panel" data-roles="DISPATCHER">
           <div class="panel-head"><h2>Traffic control</h2><span class="panel-meta">Live edge weighting</span></div>
           <div class="panel-body">
             <div class="form-grid">
@@ -301,7 +375,7 @@
             </div>
           </div>
         </section>
-        <section class="panel">
+        <section class="panel" data-roles="DISPATCHER,MEDICAL_DIRECTOR">
           <div class="panel-head"><h2>Mass casualty planner</h2><span class="panel-meta">Reduced-cost B&amp;B</span></div>
           <div class="panel-body">
             <div class="mci-tour" id="mciTour">Tour not calculated.</div>
@@ -311,6 +385,15 @@
             <div class="form-actions"><span class="status-line" id="mciStatus">Ready for scene planning.</span></div>
           </div>
         </section>
+      </div>
+    </section>
+    <section class="citizen-view" id="citizenView" hidden>
+      <div class="sos-card">
+        <div class="eyebrow">Public emergency portal · 112</div>
+        <h2>Submit 112 Distress Call</h2>
+        <p>Use this demo portal for an emergency intake simulation. For real emergencies, call your local emergency number directly.</p>
+        <div class="sos-eta"><span id="sosStatus">No distress call submitted</span><strong id="sosEta">ETA --</strong></div>
+        <form class="sos-form" id="sosForm"><label for="sosDetails">What is happening?</label><textarea id="sosDetails" maxlength="200" placeholder="Briefly describe the emergency" required></textarea><button class="button warn" type="submit">Submit 112 Distress Call</button></form>
       </div>
     </section>
   </main>
@@ -329,7 +412,16 @@
     let latestNetwork = null;
     let activeRouteNodes = [];
     let toastTimer;
+    let authToken = null;
+    let activeRole = null;
+    let activeUsername = null;
     const $ = (selector) => document.querySelector(selector);
+    const demoAccounts = {
+      DISPATCHER: { username: "dispatcher", password: "dispatch123" },
+      DOCTOR: { username: "doctor", password: "trauma123" },
+      MEDICAL_DIRECTOR: { username: "director", password: "admin123" },
+      PARAMEDIC: { username: "paramedic", password: "crew123" }
+    };
 
     function escapeHtml(value) {
       return String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[character]);
@@ -339,10 +431,62 @@
       toast.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove("show"), 3300);
     }
     async function request(url, options = {}) {
-      const response = await fetch(url, { ...options, headers: { "Content-Type": "application/json", ...(options.headers || {}) } });
+      const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+      if (authToken) headers.Authorization = `Bearer ${authToken}`;
+      const response = await fetch(url, { ...options, headers });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+      if (!response.ok) {
+        if (response.status === 401) throw new Error("Session expired. Sign in again.");
+        if (response.status === 403) throw new Error("Your role does not have access to this operation.");
+        throw new Error(data.error || `HTTP ${response.status}`);
+      }
       return data;
+    }
+    function setActiveRole(role, token = null, username = "citizen") {
+      authToken = token;
+      activeRole = role;
+      activeUsername = username;
+      sessionStorage.setItem("cad.auth.session", JSON.stringify({ token, role, username }));
+      $("#loginOverlay").hidden = true;
+      document.body.classList.remove("auth-locked");
+      $("#logoutButton").hidden = false;
+      $("#roleLabel").textContent = `${role.replaceAll("_", " ")} · ${username}`;
+      $("#operationsLayout").hidden = role === "CITIZEN";
+      $("#citizenView").hidden = role !== "CITIZEN";
+      document.querySelectorAll("[data-roles]").forEach((element) => {
+        const allowed = element.dataset.roles.split(",");
+        element.hidden = !allowed.includes(role);
+      });
+      document.querySelectorAll(".column").forEach((column) => {
+        column.hidden = !Array.from(column.children).some((child) => !child.hidden);
+      });
+      refreshAll();
+    }
+    async function signIn(username, password) {
+      $("#loginError").textContent = "";
+      try {
+        const result = await request("/api/auth/login", { method: "POST", body: JSON.stringify({ username, password }) });
+        setActiveRole(result.role, result.token, username);
+      } catch (error) { $("#loginError").textContent = error.message; }
+    }
+    function enterCitizenPortal() {
+      authToken = null;
+      setActiveRole("CITIZEN", null, "public caller");
+      $("#sosEta").textContent = "ETA --";
+      $("#sosStatus").textContent = "No distress call submitted";
+    }
+    async function restoreSession() {
+      let saved;
+      try { saved = JSON.parse(sessionStorage.getItem("cad.auth.session") || "null"); }
+      catch { sessionStorage.removeItem("cad.auth.session"); }
+      if (!saved?.role) return;
+      if (saved.role === "CITIZEN") { enterCitizenPortal(); return; }
+      if (!saved.token) { sessionStorage.removeItem("cad.auth.session"); return; }
+      authToken = saved.token;
+      try {
+        const session = await request("/api/auth/session");
+        setActiveRole(session.role, saved.token, session.username);
+      } catch { authToken = null; sessionStorage.removeItem("cad.auth.session"); }
     }
     function point(name) { return positions[name] || [420, 230]; }
     function renderRouteHighlight() {
@@ -423,11 +567,44 @@
         const scorePercent = Math.min(100, patient.priorityScore / highest * 100);
         const agingPercent = Math.min(100, patient.waitTimeMinutes / 60 * 100);
         const tag = patient.disasterTriageTag || "YELLOW";
-        return `<article class="patient${tag === "RED" ? " critical" : ""}" style="animation-delay:${Math.min(index, 8) * 25}ms"><div class="patient-head"><span class="patient-id">${escapeHtml(patient.patientId)}</span><span class="triage-tag ${tag.toLowerCase()}">${tag} · ESI ${patient.esiLevel}</span></div><div class="patient-name">${escapeHtml(patient.patientName || patient.patientId)}</div><div class="condition">${escapeHtml(patient.condition)}</div><div class="score-row"><span>Priority ${patient.priorityScore.toFixed(1)}</span><span>${patient.waitTimeMinutes} min waiting · ${patient.age}y</span></div><div class="track" title="Priority relative to the queue"><span style="width:${scorePercent}%"></span></div><div class="score-row" style="margin-top:5px"><span>Wait aging</span><span>${agingPercent.toFixed(0)}%</span></div></article>`;
+        const vitalsControl = activeRole === "DOCTOR"
+          ? `<div class="vitals-control"><label>Vitals risk <output>${patient.vitalsRiskScore.toFixed(1)}</output></label><input type="range" min="0" max="10" step="0.1" value="${patient.vitalsRiskScore}" aria-label="Vitals risk for ${escapeHtml(patient.patientId)}"><button class="button small vitals-save" data-patient-id="${escapeHtml(patient.patientId)}">Update</button></div>`
+          : "";
+        return `<article class="patient${tag === "RED" ? " critical" : ""}" style="animation-delay:${Math.min(index, 8) * 25}ms"><div class="patient-head"><span class="patient-id">${escapeHtml(patient.patientId)}</span><span class="triage-tag ${tag.toLowerCase()}">${tag} · ESI ${patient.esiLevel}</span></div><div class="patient-name">${escapeHtml(patient.patientName || patient.patientId)}</div><div class="condition">${escapeHtml(patient.condition)}</div><div class="score-row"><span>Priority ${patient.priorityScore.toFixed(1)}</span><span>${patient.waitTimeMinutes} min waiting · ${patient.age}y</span></div><div class="track" title="Priority relative to the queue"><span style="width:${scorePercent}%"></span></div><div class="score-row" style="margin-top:5px"><span>Wait aging</span><span>${agingPercent.toFixed(0)}%</span></div>${vitalsControl}</article>`;
       }).join("");
     }
     async function refreshQueue() { renderQueue(await request("/api/triage/queue")); }
     async function refreshNetwork() { renderNetwork(await request("/api/network")); }
+    async function refreshHospitals() {
+      const result = await request("/api/hospitals/status");
+      $("#bedList").innerHTML = result.hospitals.map((hospital) => {
+        const specialties = Object.entries(hospital.specialtyBays || {}).map(([name, beds]) => `${escapeHtml(name)} ${beds}`).join(" · ") || "General care";
+        const state = !hospital.active ? "OFFLINE" : hospital.beds <= 0 ? "AT CAPACITY" : `${hospital.beds} ICU beds`;
+        return `<div class="bed-row"><strong>${escapeHtml(hospital.name)}</strong><span class="bed-state${hospital.active && hospital.beds > 0 ? "" : " full"}">${state}</span><small>${specialties}</small></div>`;
+      }).join("");
+    }
+    async function refreshDirectorStats() {
+      const metrics = await request("/api/metrics");
+      const cards = [
+        ["Waiting patients", metrics.waitingPatients],
+        ["Active facilities", `${metrics.activeFacilities}/${metrics.totalFacilities}`],
+        ["Telemetry frames", metrics.telemetryRecords],
+        ["Scenario casualties", metrics.temporaryCasualties]
+      ];
+      $("#directorStats").innerHTML = cards.map(([label, value]) => `<div class="role-stat"><span>${label}</span><strong>${value}</strong></div>`).join("");
+    }
+    async function refreshActiveAssignment() {
+      const result = await request("/api/dispatch/active");
+      if (!result.assigned) {
+        $("#activeAssignment").innerHTML = '<div class="empty">No active dispatch has been handed to this crew.</div>';
+        return;
+      }
+      const dispatch = result.dispatch;
+      const route = dispatch.route;
+      const stops = [...(route.toScene.nodes || []), ...(route.toHospital.nodes || []).slice(1)];
+      const payload = dispatch.payload;
+      $("#activeAssignment").innerHTML = `<div class="assignment-state">${escapeHtml(dispatch.patient.patientId)} · ${escapeHtml(dispatch.patient.condition)}</div><div>Destination: <strong>${escapeHtml(dispatch.hospital)}</strong> · ${escapeHtml(dispatch.specialty)}</div><div class="assignment-route">${stops.map((stop) => escapeHtml(labelNames[stop] || stop)).join(" → ")}<br>Route ETA ${Number(route.totalMinutes).toFixed(1)} min · vehicle ${escapeHtml(dispatch.vehicleId)}</div><div class="panel-meta">Payload ${payload.weightKg}/${payload.capacityKg} kg · utility ${payload.utilityScore}</div>`;
+    }
     async function changeDisasterScenario(scenarioName) {
       try {
         await request("/api/disaster/scenario", { method: "POST", body: JSON.stringify({ scenarioName }) });
@@ -560,6 +737,58 @@
         await refreshQueue(); notify(`${result.patient.patientId} admitted to triage.`);
       } catch (error) { $("#admitStatus").textContent = error.message; }
     });
+    $("#queue").addEventListener("input", (event) => {
+      if (event.target.matches(".vitals-control input[type=range]"))
+        event.target.closest(".vitals-control").querySelector("output").textContent = Number(event.target.value).toFixed(1);
+    });
+    $("#queue").addEventListener("click", async (event) => {
+      const button = event.target.closest(".vitals-save");
+      if (!button) return;
+      const editor = button.closest(".vitals-control");
+      button.disabled = true;
+      try {
+        await request("/api/triage/update-vitals", { method: "POST", body: JSON.stringify({
+          patientId: button.dataset.patientId,
+          vitalsRiskScore: Number(editor.querySelector("input").value)
+        }) });
+        notify(`Vitals risk updated for ${button.dataset.patientId}.`);
+        await refreshQueue();
+      } catch (error) { notify(error.message, true); }
+      finally { button.disabled = false; }
+    });
+    $("#loginForm").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const fields = new FormData(event.currentTarget);
+      signIn(String(fields.get("username")), String(fields.get("password")));
+    });
+    document.querySelectorAll("[data-demo-role]").forEach((button) => button.addEventListener("click", () => {
+      const account = demoAccounts[button.dataset.demoRole];
+      signIn(account.username, account.password);
+    }));
+    $("#citizenAccess").addEventListener("click", enterCitizenPortal);
+    $("#logoutButton").addEventListener("click", async () => {
+      if (authToken) {
+        try { await request("/api/auth/logout", { method: "POST", body: "{}" }); }
+        catch { }
+      }
+      authToken = null; activeRole = null; activeUsername = null;
+      sessionStorage.removeItem("cad.auth.session");
+      $("#loginOverlay").hidden = false; $("#logoutButton").hidden = true;
+      document.body.classList.add("auth-locked");
+      $("#operationsLayout").hidden = true; $("#citizenView").hidden = true;
+      $("#roleLabel").textContent = "Locked"; $("#connection").textContent = "Sign in required";
+    });
+    $("#sosForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const button = event.currentTarget.querySelector("button"); button.disabled = true;
+      try {
+        const result = await request("/api/sos/call", { method: "POST", body: JSON.stringify({ details: $("#sosDetails").value }) });
+        $("#sosStatus").textContent = `Call ${result.callId} received`;
+        $("#sosEta").textContent = `ETA ${result.etaMinutes} mins`;
+        notify(result.message);
+      } catch (error) { notify(error.message, true); }
+      finally { button.disabled = false; }
+    });
     $("#risk").addEventListener("input", (event) => { $("#riskText").textContent = Number(event.target.value).toFixed(1); });
     $("#capacity").addEventListener("input", refreshPayload);
     $("#congestion").addEventListener("input", (event) => { $("#congestionText").textContent = `${Number(event.target.value).toFixed(1)}×`; });
@@ -575,8 +804,14 @@
     $("#divertHospitalButton").addEventListener("click", () => runDisasterAction(
       "/api/disaster/divert-field-hospital", "Field Hospital North is active and selected for diversion."));
     async function refreshAll(showError = false) {
+      if (!activeRole || activeRole === "CITIZEN") return;
       try {
-        await Promise.all([refreshNetwork(), refreshQueue(), refreshPayload(), refreshTelemetry()]);
+        const tasks = [];
+        if (activeRole === "DISPATCHER") tasks.push(refreshNetwork(), refreshQueue(), refreshPayload());
+        if (activeRole === "DOCTOR") tasks.push(refreshQueue(), refreshHospitals());
+        if (activeRole === "MEDICAL_DIRECTOR") tasks.push(refreshNetwork(), refreshDirectorStats(), refreshTelemetry());
+        if (activeRole === "PARAMEDIC") tasks.push(refreshActiveAssignment(), refreshPayload());
+        await Promise.all(tasks);
         $("#connection").textContent = "Connected";
         $("#connection").style.color = "var(--teal)";
       } catch (error) {
@@ -590,7 +825,7 @@
       $("#clock").textContent = now.toLocaleTimeString([], { hour12: false });
       $("#localClock").textContent = now.toLocaleDateString([], { weekday: "short", hour: "2-digit", minute: "2-digit" });
     }
-    updateClock(); refreshAll(); solveMci();
+    updateClock(); restoreSession();
     setInterval(updateClock, 1000);
     setInterval(refreshAll, 5000);
   </script>

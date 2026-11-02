@@ -28,6 +28,8 @@ public final class ThreadSafeDispatchEngine {
     private final List<KnapsackPayload.MedicalItem> equipment = new ArrayList<>();
     private long dispatchSequence;
     private long simulatedCallSequence;
+    private long sosSequence;
+    private Map<String, Object> lastDispatch;
 
     public ThreadSafeDispatchEngine() {
         initializeDemoState();
@@ -63,6 +65,62 @@ public final class ThreadSafeDispatchEngine {
         try {
             triage.ageAllPatients(deltaMinutes);
             return triage.size();
+        } finally { lock.writeLock().unlock(); }
+    }
+
+    public PatientNode updatePatientVitals(String patientId, double vitalsRiskScore) {
+        lock.writeLock().lock();
+        try {
+            PatientNode patient = null;
+            for (PatientNode current : triage.snapshotInPriorityOrder())
+                if (current.getPatientId().equals(patientId)) { patient = current; break; }
+            if (patient == null) throw new IllegalArgumentException("Patient is not waiting in the triage queue.");
+            boolean updated = triage.updatePriority(patientId, patient.getEsiLevel(), patient.getWaitTimeMinutes(),
+                    vitalsRiskScore, patient.getAge());
+            if (!updated) throw new IllegalStateException("Patient left the triage queue during the update.");
+            for (PatientNode current : triage.snapshotInPriorityOrder())
+                if (current.getPatientId().equals(patientId)) return current;
+            throw new IllegalStateException("Updated patient could not be found in triage.");
+        } finally { lock.writeLock().unlock(); }
+    }
+
+    public List<Map<String, Object>> hospitalStatusSnapshot() {
+        lock.readLock().lock();
+        try { return hospitals.snapshot(); }
+        finally { lock.readLock().unlock(); }
+    }
+
+    public Map<String, Object> metricsSnapshot() {
+        lock.readLock().lock();
+        try {
+            List<Map<String, Object>> facilities = hospitals.snapshot();
+            long activeFacilities = facilities.stream().filter(item -> Boolean.TRUE.equals(item.get("active"))).count();
+            return Map.of("waitingPatients", triage.size(), "totalFacilities", facilities.size(),
+                    "activeFacilities", activeFacilities, "telemetryRecords", telemetry.size(),
+                    "activeScenario", disasterScenarios.getActiveScenario(),
+                    "temporaryCasualties", disasterScenarios.snapshot().get("temporaryPatients"));
+        } finally { lock.readLock().unlock(); }
+    }
+
+    public Map<String, Object> activeDispatchSnapshot() {
+        lock.readLock().lock();
+        try {
+            if (lastDispatch == null) return Map.of("assigned", false);
+            return Map.of("assigned", true, "dispatch", lastDispatch);
+        } finally { lock.readLock().unlock(); }
+    }
+
+    public Map<String, Object> submitCitizenSos(String details) {
+        lock.writeLock().lock();
+        try {
+            String description = details == null || details.isBlank() ? "Citizen emergency call" : details.trim();
+            if (description.length() > 200) throw new IllegalArgumentException("SOS details must not exceed 200 characters.");
+            String patientId = "SOS-" + String.format("%05d", ++sosSequence);
+            PatientNode patient = new PatientNode(patientId, "Citizen caller", description, 2, 0, 7.0, 30,
+                    PatientNode.DisasterTriageTag.RED);
+            triage.insert(patient);
+            return Map.of("accepted", true, "callId", patientId, "etaMinutes", 9,
+                    "message", "Distress call received. A dispatcher will verify and assign a unit.");
         } finally { lock.writeLock().unlock(); }
     }
 
@@ -171,6 +229,7 @@ public final class ThreadSafeDispatchEngine {
             result.put("payload", Map.of("capacityKg", 30, "weightKg", payload.getTotalWeightKg(),
                     "utilityScore", payload.getMaxUtility(), "items", selectedItems));
             result.put("telemetry", telemetryMap(record));
+            lastDispatch = Map.copyOf(result);
             return result;
         } finally { lock.writeLock().unlock(); }
     }

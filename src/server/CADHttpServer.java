@@ -1,6 +1,9 @@
 package server;
 
+import auth.AuthManager;
+import auth.UserRole;
 import cad.ThreadSafeDispatchEngine;
+import model.PatientNode;
 import stream.SimulatedCallGenerator;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -17,6 +20,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadFactory;
@@ -28,6 +33,8 @@ public final class CADHttpServer implements AutoCloseable {
     private static final int MAX_REQUEST_BYTES = 64 * 1024;
     private final ThreadSafeDispatchEngine engine;
     private final int port;
+    private final AuthManager authManager = new AuthManager();
+    private final ConcurrentHashMap<String, Long> lastSosByAddress = new ConcurrentHashMap<>();
     private HttpServer server;
     private ThreadPoolExecutor executor;
 
@@ -95,42 +102,100 @@ public final class CADHttpServer implements AutoCloseable {
                 sendJson(exchange, 200, Map.of("status", "ok", "service", "Smart Emergency Response Prioritization System"));
                 return;
             }
+            if ("POST".equals(method) && "/api/auth/login".equals(path)) {
+                Map<String, Object> input = readJsonObject(exchange);
+                AuthManager.AuthToken token = authManager.login(string(input, "username"), string(input, "password"));
+                if (token == null) {
+                    sendJson(exchange, 401, Map.of("error", "Invalid username or password."));
+                    return;
+                }
+                sendJson(exchange, 200, Map.of("token", token.getToken(), "role", token.getRole().name(),
+                        "expiresAt", token.getExpiresAtEpochMillis(), "expiresInSeconds", AuthManager.SESSION_TTL_MILLIS / 1000));
+                return;
+            }
+            if ("GET".equals(method) && "/api/auth/session".equals(path)) {
+                AuthManager.UserSession session = authenticatedSession(exchange);
+                if (session == null) return;
+                sendJson(exchange, 200, Map.of("username", session.getUsername(), "role", session.getRole().name(),
+                        "expiresAt", session.getExpiresAtEpochMillis()));
+                return;
+            }
+            if ("POST".equals(method) && "/api/auth/logout".equals(path)) {
+                String token = bearerToken(exchange);
+                if (authManager.validateToken(token) == null) {
+                    sendJson(exchange, 401, Map.of("error", "A valid bearer token is required."));
+                    return;
+                }
+                authManager.logout(token);
+                sendJson(exchange, 200, Map.of("loggedOut", true));
+                return;
+            }
+            if ("POST".equals(method) && "/api/sos/call".equals(path)) {
+                if (!allowSos(exchange)) return;
+                Map<String, Object> input = readJsonObject(exchange);
+                sendJson(exchange, 202, engine.submitCitizenSos(optionalString(input, "details", "Citizen emergency call")));
+                return;
+            }
             if ("GET".equals(method) && "/api/disaster/status".equals(path)) {
+                if (!authorize(exchange, UserRole.DISPATCHER, UserRole.MEDICAL_DIRECTOR)) return;
                 sendJson(exchange, 200, engine.disasterSnapshot());
                 return;
             }
             if ("POST".equals(method) && "/api/disaster/scenario".equals(path)) {
+                if (!authorize(exchange, UserRole.DISPATCHER, UserRole.MEDICAL_DIRECTOR)) return;
                 Map<String, Object> input = readJsonObject(exchange);
                 sendJson(exchange, 200, engine.activateDisasterScenario(string(input, "scenarioName")));
                 return;
             }
             if ("POST".equals(method) && "/api/disaster/reset".equals(path)) {
+                if (!authorize(exchange, UserRole.DISPATCHER, UserRole.MEDICAL_DIRECTOR)) return;
                 sendJson(exchange, 200, engine.resetDisasterScenario());
                 return;
             }
             if ("POST".equals(method) && "/api/disaster/casualties".equals(path)) {
+                if (!authorize(exchange, UserRole.DISPATCHER, UserRole.MEDICAL_DIRECTOR)) return;
                 sendJson(exchange, 200, engine.loadEarthquakeCasualties());
                 return;
             }
             if ("POST".equals(method) && "/api/disaster/sever-main-bridge".equals(path)) {
+                if (!authorize(exchange, UserRole.DISPATCHER, UserRole.MEDICAL_DIRECTOR)) return;
                 sendJson(exchange, 200, engine.severMainBridge());
                 return;
             }
             if ("POST".equals(method) && "/api/disaster/divert-field-hospital".equals(path)) {
+                if (!authorize(exchange, UserRole.DISPATCHER, UserRole.MEDICAL_DIRECTOR)) return;
                 sendJson(exchange, 200, engine.divertToFieldHospital());
                 return;
             }
+            if ("GET".equals(method) && "/api/metrics".equals(path)) {
+                if (!authorize(exchange, UserRole.MEDICAL_DIRECTOR)) return;
+                sendJson(exchange, 200, engine.metricsSnapshot());
+                return;
+            }
+            if ("GET".equals(method) && "/api/hospitals/status".equals(path)) {
+                if (!authorize(exchange, UserRole.DOCTOR, UserRole.MEDICAL_DIRECTOR, UserRole.DISPATCHER)) return;
+                sendJson(exchange, 200, Map.of("hospitals", engine.hospitalStatusSnapshot()));
+                return;
+            }
+            if ("GET".equals(method) && "/api/dispatch/active".equals(path)) {
+                if (!authorize(exchange, UserRole.PARAMEDIC, UserRole.DISPATCHER, UserRole.MEDICAL_DIRECTOR)) return;
+                sendJson(exchange, 200, engine.activeDispatchSnapshot());
+                return;
+            }
             if ("GET".equals(method) && "/api/network".equals(path)) {
+                if (!authorize(exchange, UserRole.DISPATCHER, UserRole.MEDICAL_DIRECTOR)) return;
                 sendJson(exchange, 200, engine.networkSnapshot());
                 return;
             }
             if ("GET".equals(method) && "/api/triage/queue".equals(path)) {
+                if (!authorize(exchange, UserRole.DISPATCHER, UserRole.DOCTOR, UserRole.MEDICAL_DIRECTOR)) return;
                 List<Map<String, Object>> patients = new ArrayList<>();
                 engine.triageSnapshot().forEach(patient -> patients.add(ThreadSafeDispatchEngine.patientMap(patient)));
                 sendJson(exchange, 200, Map.of("count", patients.size(), "patients", patients));
                 return;
             }
             if ("POST".equals(method) && "/api/triage/admit".equals(path)) {
+                if (!authorize(exchange, UserRole.DISPATCHER, UserRole.MEDICAL_DIRECTOR)) return;
                 Map<String, Object> input = readJsonObject(exchange);
                 Object patient = engine.admit(string(input, "patientId"), string(input, "condition"),
                         integer(input, "esiLevel"), integer(input, "waitTimeMinutes", 0),
@@ -139,11 +204,20 @@ public final class CADHttpServer implements AutoCloseable {
                         "patient", ThreadSafeDispatchEngine.patientMap((model.PatientNode) patient)));
                 return;
             }
+            if ("POST".equals(method) && "/api/triage/update-vitals".equals(path)) {
+                if (!authorize(exchange, UserRole.DOCTOR, UserRole.MEDICAL_DIRECTOR)) return;
+                Map<String, Object> input = readJsonObject(exchange);
+                PatientNode updated = engine.updatePatientVitals(string(input, "patientId"), decimal(input, "vitalsRiskScore"));
+                sendJson(exchange, 200, Map.of("updated", true, "patient", ThreadSafeDispatchEngine.patientMap(updated)));
+                return;
+            }
             if ("POST".equals(method) && "/api/dispatch/execute".equals(path)) {
+                if (!authorize(exchange, UserRole.DISPATCHER, UserRole.MEDICAL_DIRECTOR)) return;
                 sendJson(exchange, 200, engine.executeDispatch());
                 return;
             }
             if ("POST".equals(method) && "/api/congestion/spike".equals(path)) {
+                if (!authorize(exchange, UserRole.DISPATCHER)) return;
                 Map<String, Object> input = readJsonObject(exchange);
                 sendJson(exchange, 200, engine.spikeCongestion(string(input, "from"), string(input, "to"),
                         decimal(input, "congestionMultiplier"), optionalString(input, "source", "AmbulanceDepot"),
@@ -151,6 +225,7 @@ public final class CADHttpServer implements AutoCloseable {
                 return;
             }
             if ("GET".equals(method) && "/api/telemetry/query".equals(path)) {
+                if (!authorize(exchange, UserRole.MEDICAL_DIRECTOR)) return;
                 Map<String, String> query = parseQuery(exchange.getRequestURI().getRawQuery());
                 long start = queryLong(query, "start");
                 long end = queryLong(query, "end");
@@ -159,6 +234,7 @@ public final class CADHttpServer implements AutoCloseable {
                 return;
             }
             if ("GET".equals(method) && "/api/mci/solve".equals(path)) {
+                if (!authorize(exchange, UserRole.DISPATCHER, UserRole.MEDICAL_DIRECTOR)) return;
                 Map<String, Object> result = new LinkedHashMap<>(engine.solveMci());
                 List<String> locations = List.of("Command Post", "Scene Alpha", "Scene Bravo", "Scene Charlie");
                 List<Integer> tourIndices = new ArrayList<>();
@@ -182,6 +258,7 @@ public final class CADHttpServer implements AutoCloseable {
                 return;
             }
             if ("GET".equals(method) && "/api/resources/payload".equals(path)) {
+                if (!authorize(exchange, UserRole.PARAMEDIC, UserRole.DISPATCHER, UserRole.MEDICAL_DIRECTOR)) return;
                 Map<String, String> query = parseQuery(exchange.getRequestURI().getRawQuery());
                 int capacity = query.containsKey("capacity") ? Integer.parseInt(query.get("capacity")) : 30;
                 sendJson(exchange, 200, engine.payloadSnapshot(capacity));
@@ -212,6 +289,57 @@ public final class CADHttpServer implements AutoCloseable {
             result.put(key, entry.getValue());
         }
         return result;
+    }
+
+    private AuthManager.UserSession authenticatedSession(HttpExchange exchange) throws IOException {
+        AuthManager.UserSession session = authManager.validateToken(bearerToken(exchange));
+        if (session == null) {
+            sendJson(exchange, 401, Map.of("error", "A valid bearer token is required."));
+            return null;
+        }
+        return session;
+    }
+
+    private boolean authorize(HttpExchange exchange, UserRole... allowedRoles) throws IOException {
+        String token = bearerToken(exchange);
+        AuthManager.UserSession session = authManager.validateToken(token);
+        if (session == null) {
+            sendJson(exchange, 401, Map.of("error", "A valid bearer token is required."));
+            return false;
+        }
+        for (UserRole role : allowedRoles)
+            if (session.getRole() == role && authManager.hasPermission(token, role)) return true;
+        sendJson(exchange, 403, Map.of("error", "Role " + session.getRole().name() + " is not permitted for this operation."));
+        return false;
+    }
+
+    private static String bearerToken(HttpExchange exchange) {
+        String authorization = exchange.getRequestHeaders().getFirst("Authorization");
+        if (authorization == null) return null;
+        int separator = authorization.indexOf(' ');
+        if (separator <= 0 || !"Bearer".equalsIgnoreCase(authorization.substring(0, separator))) return null;
+        String token = authorization.substring(separator + 1).trim();
+        return token.isEmpty() ? null : token;
+    }
+
+    private boolean allowSos(HttpExchange exchange) throws IOException {
+        String address = exchange.getRemoteAddress().getAddress().getHostAddress();
+        long now = System.currentTimeMillis();
+        AtomicBoolean allowed = new AtomicBoolean();
+        lastSosByAddress.compute(address, (key, previous) -> {
+            if (previous == null || now - previous >= 30_000) {
+                allowed.set(true);
+                return now;
+            }
+            return previous;
+        });
+        if (!allowed.get()) {
+            sendJson(exchange, 429, Map.of("error", "Please wait before submitting another distress call."));
+            return false;
+        }
+        if (lastSosByAddress.size() > 2048)
+            lastSosByAddress.entrySet().removeIf(entry -> now - entry.getValue() > 600_000);
+        return true;
     }
 
     private static String string(Map<String, Object> object, String key) {

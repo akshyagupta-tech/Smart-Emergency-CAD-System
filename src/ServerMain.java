@@ -16,19 +16,23 @@ public class ServerMain {
 
         ThreadSafeDispatchEngine engine = new ThreadSafeDispatchEngine();
 
+        CADHttpServer server = new CADHttpServer(engine, port);
+        SimulatedCallGenerator stream = new SimulatedCallGenerator(engine);
         try {
-            CADHttpServer server = new CADHttpServer(engine, port);
             server.start();
+            stream.start();
             System.out.println("HTTP Server is live on port " + port);
         } catch (Exception e) {
+            stream.close();
+            server.close();
             e.printStackTrace();
             System.exit(1);
         }
 
-        SimulatedCallGenerator stream = new SimulatedCallGenerator(engine);
-        Thread streamThread = new Thread(stream, "CallGeneratorStream");
-        streamThread.setDaemon(false);
-        streamThread.start();
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            stream.close();
+            server.close();
+        }, "cad-shutdown"));
 
         System.out.println("System operational. Cloud dispatch endpoints ready.");
     }
