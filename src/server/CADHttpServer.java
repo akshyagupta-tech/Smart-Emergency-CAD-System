@@ -42,7 +42,7 @@ public final class CADHttpServer implements AutoCloseable {
 
     public synchronized void start() throws IOException {
         if (server != null) return;
-        server = HttpServer.create(new InetSocketAddress("127.0.0.1", port), 64);
+        server = HttpServer.create(new InetSocketAddress("0.0.0.0", port), 0);
         ThreadFactory factory = task -> {
             Thread thread = new Thread(task, "cad-http-worker");
             thread.setDaemon(true);
@@ -73,13 +73,21 @@ public final class CADHttpServer implements AutoCloseable {
         try {
             String method = exchange.getRequestMethod();
             String path = exchange.getRequestURI().getPath();
-            if ("GET".equals(method) && "/".equals(path)) {
+            if (("GET".equals(method) || "HEAD".equals(method)) && "/".equals(path)) {
                 String dashboard = loadDashboard();
                 if (dashboard == null) {
-                    sendText(exchange, 404, "text/plain; charset=UTF-8",
-                            "Dashboard HTML not found. Checked src/server/web/index.html, web/index.html, and index.html.");
+                    String message = "Dashboard HTML not found. Checked src/server/web/index.html, web/index.html, and index.html.";
+                    if ("HEAD".equals(method)) {
+                        sendHeadersOnly(exchange, 404, "text/plain; charset=UTF-8");
+                    } else {
+                        sendText(exchange, 404, "text/plain; charset=UTF-8", message);
+                    }
                 } else {
-                    sendText(exchange, 200, "text/html; charset=UTF-8", dashboard);
+                    if ("HEAD".equals(method)) {
+                        sendHeadersOnly(exchange, 200, "text/html; charset=UTF-8");
+                    } else {
+                        sendText(exchange, 200, "text/html; charset=UTF-8", dashboard);
+                    }
                 }
                 return;
             }
@@ -264,6 +272,13 @@ public final class CADHttpServer implements AutoCloseable {
         exchange.getResponseHeaders().set("Cache-Control", "no-store");
         exchange.sendResponseHeaders(status, bytes.length);
         exchange.getResponseBody().write(bytes);
+    }
+
+    private static void sendHeadersOnly(HttpExchange exchange, int status, String contentType) throws IOException {
+        exchange.getResponseHeaders().set("Content-Type", contentType);
+        exchange.getResponseHeaders().set("X-Content-Type-Options", "nosniff");
+        exchange.getResponseHeaders().set("Cache-Control", "no-store");
+        exchange.sendResponseHeaders(status, -1);
     }
 
     private static String loadDashboard() throws IOException {
