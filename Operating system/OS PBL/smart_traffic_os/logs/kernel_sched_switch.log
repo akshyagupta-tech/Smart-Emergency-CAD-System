@@ -1,0 +1,27 @@
+
+# kernel sched_switch trace mode=mock (synthetic; not kernel measurements) started=2026-11-07T07:45:35+00:00
+# prev_run_duration_ns is observed task residency; switch_interval_jitter_ns is per-CPU inter-event variation, not hardware register-switch latency.
+source=mock timestamp=1.000000000 cpu=0 prev_pid=0 prev_comm='swapper' prev_state='R' next_pid=101 next_comm='ambulance' prev_run_duration_ns=n/a switch_interval_jitter_ns=n/a
+source=mock timestamp=1.001000000 cpu=1 prev_pid=101 prev_comm='ambulance' prev_state='S' next_pid=202 next_comm='signal_worker' prev_run_duration_ns=1000000 switch_interval_jitter_ns=n/a
+source=mock timestamp=1.002200000 cpu=0 prev_pid=202 prev_comm='signal_worker' prev_state='R' next_pid=303 next_comm='camera_ai' prev_run_duration_ns=1200000 switch_interval_jitter_ns=0
+source=mock timestamp=1.003150000 cpu=1 prev_pid=303 prev_comm='camera_ai' prev_state='S' next_pid=101 next_comm='ambulance' prev_run_duration_ns=950000 switch_interval_jitter_ns=0
+source=mock timestamp=1.004200000 cpu=0 prev_pid=101 prev_comm='ambulance' prev_state='R' next_pid=202 next_comm='signal_worker' prev_run_duration_ns=1050000 switch_interval_jitter_ns=200000
+source=mock timestamp=1.005200000 cpu=1 prev_pid=202 prev_comm='signal_worker' prev_state='S' next_pid=303 next_comm='camera_ai' prev_run_duration_ns=1000000 switch_interval_jitter_ns=100000
+
+# kernel sched_switch trace mode=mock (synthetic; not kernel measurements) started=2026-11-07T07:46:08+00:00
+# prev_run_duration_ns is observed task residency; switch_interval_jitter_ns is per-CPU inter-event variation, not hardware register-switch latency.
+source=mock timestamp=1.000000000 cpu=0 prev_pid=0 prev_comm='swapper' prev_state='R' next_pid=101 next_comm='ambulance' prev_run_duration_ns=n/a switch_interval_jitter_ns=n/a
+source=mock timestamp=1.001000000 cpu=0 prev_pid=101 prev_comm='ambulance' prev_state='S' next_pid=202 next_comm='signal_worker' prev_run_duration_ns=1000000 switch_interval_jitter_ns=0
+source=mock timestamp=1.002200000 cpu=0 prev_pid=202 prev_comm='signal_worker' prev_state='R' next_pid=303 next_comm='camera_ai' prev_run_duration_ns=1200000 switch_interval_jitter_ns=200000
+source=mock timestamp=1.003150000 cpu=0 prev_pid=303 prev_comm='camera_ai' prev_state='S' next_pid=101 next_comm='ambulance' prev_run_duration_ns=950000 switch_interval_jitter_ns=150000
+source=mock timestamp=1.004200000 cpu=0 prev_pid=101 prev_comm='ambulance' prev_state='R' next_pid=202 next_comm='signal_worker' prev_run_duration_ns=1050000 switch_interval_jitter_ns=50000
+source=mock timestamp=1.005200000 cpu=0 prev_pid=202 prev_comm='signal_worker' prev_state='S' next_pid=303 next_comm='camera_ai' prev_run_duration_ns=1000000 switch_interval_jitter_ns=25000
+
+# kernel sched_switch trace mode=mock (synthetic; not kernel measurements) started=2026-11-07T07:46:59+00:00
+# prev_run_duration_ns is observed task residency; switch_interval_jitter_ns is per-CPU inter-event variation, not hardware register-switch latency. BCC transition duration is sched_switch-to-finish_task_switch time, not hardware-only latency.
+source=mock timestamp=1.000000000 cpu=0 prev_pid=0 prev_comm='swapper' prev_state='R' next_pid=101 next_comm='ambulance' prev_run_duration_ns=n/a switch_interval_jitter_ns=n/a scheduler_transition_duration_ns=8000 scheduler_transition_jitter_ns=0
+source=mock timestamp=1.001000000 cpu=0 prev_pid=101 prev_comm='ambulance' prev_state='S' next_pid=202 next_comm='signal_worker' prev_run_duration_ns=1000000 switch_interval_jitter_ns=0 scheduler_transition_duration_ns=8750 scheduler_transition_jitter_ns=750
+source=mock timestamp=1.002200000 cpu=0 prev_pid=202 prev_comm='signal_worker' prev_state='R' next_pid=303 next_comm='camera_ai' prev_run_duration_ns=1200000 switch_interval_jitter_ns=200000 scheduler_transition_duration_ns=9500 scheduler_transition_jitter_ns=1125
+source=mock timestamp=1.003150000 cpu=0 prev_pid=303 prev_comm='camera_ai' prev_state='S' next_pid=101 next_comm='ambulance' prev_run_duration_ns=950000 switch_interval_jitter_ns=150000 scheduler_transition_duration_ns=8000 scheduler_transition_jitter_ns=750
+source=mock timestamp=1.004200000 cpu=0 prev_pid=101 prev_comm='ambulance' prev_state='R' next_pid=202 next_comm='signal_worker' prev_run_duration_ns=1050000 switch_interval_jitter_ns=50000 scheduler_transition_duration_ns=8750 scheduler_transition_jitter_ns=375
+source=mock timestamp=1.005200000 cpu=0 prev_pid=202 prev_comm='signal_worker' prev_state='S' next_pid=303 next_comm='camera_ai' prev_run_duration_ns=1000000 switch_interval_jitter_ns=25000 scheduler_transition_duration_ns=9500 scheduler_transition_jitter_ns=750

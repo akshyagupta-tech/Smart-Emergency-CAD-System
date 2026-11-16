@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101513">
+  <title>Smart Traffic OS | Edge Node Controller</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { color-scheme: dark; --page:#101513; --panel:#171e1a; --line:#2b3630; --muted:#93a49a; --green:#77e3a1; --amber:#f3bd65; --red:#ff7066; --cyan:#74d7d2; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:#e7efe9; font-family:Manrope,sans-serif; background-color:var(--page); background-image:linear-gradient(rgba(140,173,150,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(140,173,150,.035) 1px,transparent 1px); background-size:32px 32px; }
+    .mono { font-family:"DM Mono",monospace; }
+    .panel { background:rgba(23,30,26,.94); border:1px solid var(--line); border-radius:8px; }
+    .section-label { color:var(--muted); font:500 11px "DM Mono",monospace; letter-spacing:.08em; text-transform:uppercase; }
+    .signal-lamp { width:13px; height:13px; border-radius:50%; background:#303a34; border:1px solid #49554d; }
+    .signal-lamp.active-green { background:var(--green); box-shadow:0 0 16px rgba(119,227,161,.65); border-color:var(--green); }
+    .signal-lamp.active-yellow { background:var(--amber); box-shadow:0 0 16px rgba(243,189,101,.65); border-color:var(--amber); }
+    .signal-lamp.active-red { background:var(--red); box-shadow:0 0 16px rgba(255,112,102,.6); border-color:var(--red); }
+    .signal-lamp.active-blue { background:var(--cyan); box-shadow:0 0 16px rgba(116,215,210,.7); border-color:var(--cyan); }
+    .road-h { height:2px; background:linear-gradient(90deg,transparent,#66766b 18%,#66766b 82%,transparent); }
+    .road-v { width:2px; background:linear-gradient(180deg,transparent,#66766b 18%,#66766b 82%,transparent); }
+    .core-track { height:6px; background:#28322c; border-radius:10px; overflow:hidden; }
+    .core-fill { height:100%; border-radius:10px; transition:width .25s ease; background:var(--green); }
+    .queue-track { height:5px; background:#29342d; border-radius:8px; overflow:hidden; }
+    .queue-fill { height:100%; border-radius:8px; background:var(--amber); transition:width .25s ease; }
+    #memory-chart { display:block; max-width:100%; }
+    .status-dot { width:8px; height:8px; border-radius:50%; background:#69756d; display:inline-block; }
+    .status-dot.connected { background:var(--green); box-shadow:0 0 10px rgba(119,227,161,.7); }
+    .status-dot.error { background:var(--red); }
+    button,input,select { font:inherit; }
+    button:focus-visible,input:focus-visible,select:focus-visible { outline:2px solid var(--cyan); outline-offset:2px; }
+    .toast { transform:translateY(12px); opacity:0; pointer-events:none; transition:all .2s ease; }
+    .toast.visible { transform:translateY(0); opacity:1; }
+    @keyframes siren-alert { 0%,100% { box-shadow:0 0 0 rgba(255,112,102,0); } 50% { box-shadow:0 0 18px rgba(255,112,102,.6); } }
+    #emergency-indicator.alert-active { color:#ff8879; animation:siren-alert .65s ease-in-out infinite; }
+    dialog { color:#e7efe9; background:#171e1a; border:1px solid #45554a; border-radius:8px; padding:0; }
+    dialog::backdrop { background:rgba(5,9,7,.76); backdrop-filter:blur(3px); }
+    @media (max-width:640px) { .intersection-grid { grid-template-columns:1fr 1fr 1fr; gap:5px; } .signal-card { min-height:102px; padding:8px; } }
+  </style>
+</head>
+<body class="min-h-screen">
+  <div class="mx-auto max-w-[1500px] px-4 py-4 sm:px-6 lg:px-8">
+    <header class="mb-5 flex flex-col gap-4 border-b border-[#2b3630] pb-4 md:flex-row md:items-center md:justify-between">
+      <div class="flex items-center gap-3">
+        <div class="flex h-10 w-10 items-center justify-center rounded-lg border border-[#375141] bg-[#1a2c20] text-[#77e3a1]" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M2 12h20" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/></svg>
+        </div>
+        <div>
+          <h1 class="text-lg font-extrabold tracking-tight sm:text-xl">Smart Traffic OS - Live Edge Controller (SDG 11)</h1>
+          <p class="mono mt-1 text-[10px] uppercase text-[#77e3a1]">SDG 11 · Sustainable Cities and Communities</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="panel flex items-center gap-2 px-3 py-2"><span class="status-dot" id="ws-dot"></span><span class="mono text-xs" id="ws-status">Connecting</span></div>
+        <div class="panel px-3 py-2"><span class="section-label">Tick</span> <span class="mono ml-2 text-xs" id="tick-value">--</span></div>
+        <div class="panel px-3 py-2"><span class="section-label">Uptime</span> <span class="mono ml-2 text-xs" id="uptime-value">--:--:--</span></div>
+        <div class="panel px-3 py-2"><span class="section-label">Latency</span> <span class="mono ml-2 text-xs" id="latency-value">-- ms</span></div>
+      </div>
+    </header>
+
+    <main class="grid grid-cols-1 gap-4 xl:grid-cols-12">
+      <section class="panel p-4 sm:p-5 xl:col-span-7" aria-labelledby="junction-title">
+        <div class="mb-4 flex items-center justify-between">
+          <div><p class="section-label">A / Junction control</p><h2 id="junction-title" class="mt-1 text-base font-bold">Metropolitan intersection</h2></div>
+          <div class="flex items-center gap-2 rounded-md border border-[#36503e] bg-[#1b2b20] px-2.5 py-1.5"><span class="h-2 w-2 rounded-full bg-[#77e3a1] shadow-[0_0_10px_#77e3a1]"></span><span class="mono text-[10px] text-[#b8e9c8]">SIMULATION ACTIVE</span></div>
+        </div>
+        <div class="intersection-grid grid aspect-auto min-h-[280px] grid-cols-3 grid-rows-3 gap-3 rounded-lg border border-[#28342c] bg-[#131a16] p-3 sm:aspect-[1.65/1] sm:p-5">
+          <div></div><div id="zone-North" class="signal-card"></div><div></div>
+          <div id="zone-West" class="signal-card"></div>
+          <div class="relative flex items-center justify-center overflow-hidden rounded-md border border-[#334139] bg-[#19221c]">
+            <div class="road-h absolute left-0 right-0 top-1/2"></div><div class="road-v absolute bottom-0 top-0 left-1/2"></div>
+            <div class="relative z-10 flex h-16 w-16 flex-col items-center justify-center rounded-full border border-[#47574c] bg-[#111713] shadow-xl"><span class="mono text-[9px] text-[#93a49a]">CORE 0</span><span class="mono mt-1 text-[8px] text-[#77e3a1]">RT / PCP</span></div>
+          </div>
+          <div id="zone-East" class="signal-card"></div>
+          <div></div><div id="zone-South" class="signal-card"></div><div></div>
+        </div>
+        <div class="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[#2b3630] pt-3 text-xs text-[#aab8ae]">
+          <span class="flex items-center gap-2"><span class="signal-lamp active-green"></span>Green</span><span class="flex items-center gap-2"><span class="signal-lamp active-yellow"></span>Yellow</span><span class="flex items-center gap-2"><span class="signal-lamp active-red"></span>Red</span>
+          <span class="ml-auto mono text-[10px]" id="emergency-indicator">NO ACTIVE OVERRIDE</span>
+        </div>
+      </section>
+
+      <section class="panel p-4 sm:p-5 xl:col-span-5" aria-labelledby="scheduler-title">
+        <div class="mb-4"><p class="section-label">B / Process scheduling</p><h2 id="scheduler-title" class="mt-1 text-base font-bold">CPU core allocation</h2></div>
+        <div class="space-y-3" id="core-list"></div>
+        <div class="mt-5 border-t border-[#2b3630] pt-4">
+          <div class="mb-3 flex items-center justify-between"><span class="section-label">MLFQ queue depth</span><span class="mono text-[10px] text-[#93a49a]">2 ms / 4 ms / FCFS</span></div>
+          <div class="space-y-3" id="queue-list"></div>
+        </div>
+        <div class="mt-4 grid grid-cols-2 gap-3">
+          <div class="rounded-md border border-[#2c3931] bg-[#131a16] p-3"><p class="section-label">Avg. wait</p><p class="mono mt-1 text-lg" id="awt-value">-- <span class="text-xs text-[#93a49a]">ms</span></p></div>
+          <div class="rounded-md border border-[#2c3931] bg-[#131a16] p-3"><p class="section-label">Switch penalty</p><p class="mono mt-1 text-lg">0.2 <span class="text-xs text-[#93a49a]">ms</span></p></div>
+        </div>
+      </section>
+
+      <section class="panel p-4 sm:p-5 xl:col-span-7" aria-labelledby="memory-title">
+        <div class="mb-4 flex flex-wrap items-end justify-between gap-2">
+          <div><p class="section-label">C / Memory telemetry</p><h2 id="memory-title" class="mt-1 text-base font-bold">Page faults & shared-frame throughput</h2></div>
+          <div class="text-right"><p class="section-label">/dev/shm throughput</p><p class="mono mt-1 text-sm" id="shm-throughput">0 B/s</p></div>
+        </div>
+        <div class="relative h-56 w-full min-w-0 overflow-hidden"><canvas id="memory-chart" aria-label="Current page faults for FIFO, LRU, LFU, and Optimal"></canvas></div>
+        <div class="mt-4 grid grid-cols-2 gap-3 border-t border-[#2b3630] pt-3 sm:grid-cols-4">
+          <div><p class="section-label">Frames</p><p class="mono mt-1 text-sm" id="frame-usage">0 / 8</p></div>
+          <div><p class="section-label">LRU faults</p><p class="mono mt-1 text-sm text-[#74d7d2]" id="lru-faults">0</p></div>
+          <div><p class="section-label">FIFO faults</p><p class="mono mt-1 text-sm text-[#f3bd65]" id="fifo-faults">0</p></div>
+          <div><p class="section-label">LFU / Optimal</p><p class="mono mt-1 text-sm" id="other-faults">0 / 0</p></div>
+        </div>
+      </section>
+
+      <section class="panel p-4 sm:p-5 xl:col-span-5" aria-labelledby="controls-title">
+        <div class="mb-4"><p class="section-label">D / Operator console</p><h2 id="controls-title" class="mt-1 text-base font-bold">Manual control & resource admission</h2></div>
+        <div class="rounded-md border border-[#54352e] bg-[#261c18] p-4">
+          <div class="flex items-start justify-between gap-3"><div><p class="mono text-xs font-medium text-[#ffb09f]">EMERGENCY PREEMPTION</p><p class="mt-1 text-xs text-[#b8aaa3]">Priority 0 · PCP elevation · optical transponder</p></div><span class="mono text-xs text-[#ff8879]">P0</span></div>
+          <button id="emergency-button" class="mt-4 flex w-full items-center justify-center gap-2 rounded-md border border-[#a84e42] bg-[#923f35] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#a84b3f] disabled:cursor-wait disabled:opacity-60">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v3m0 12v3M4.93 4.93l2.12 2.12m9.9 9.9 2.12 2.12M3 12h3m12 0h3M4.93 19.07l2.12-2.12m9.9-9.9 2.12-2.12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Trigger Emergency Ambulance (P0)
+          </button>
+        </div>
+        <form id="banker-form" class="mt-4 rounded-md border border-[#2a526c] bg-[#121f28] p-4">
+          <div><p class="mono text-xs font-medium text-[#a7d6cf]">BANKER'S RESOURCE ADMISSION</p><p class="mt-1 text-xs text-[#93a49a]">Evaluate a three-zone corridor allocation</p></div>
+          <div class="mt-4 grid grid-cols-2 gap-3">
+            <label class="text-xs text-[#aab8ae]">Approach process
+              <select id="banker-process" class="mt-1 w-full rounded-md border border-[#3b4940] bg-[#1a221d] px-3 py-2 text-sm text-white"><option value="P1_Ambulance">P1 · North</option><option value="P2_BRT_Bus">P2 · South</option><option value="P3_SmartTransit">P3 · East</option><option value="P4_Logistics">P4 · West</option></select>
+            </label>
+            <label class="text-xs text-[#aab8ae]">Resource vector [Z1,Z2,Z3]
+              <input id="banker-resources" value="1,0,0" inputmode="numeric" class="mono mt-1 w-full rounded-md border border-[#3b4940] bg-[#1a221d] px-3 py-2 text-sm text-white" aria-describedby="resource-help">
+            </label>
+          </div>
+          <p id="resource-help" class="mt-2 text-[10px] text-[#77887d]">Three non-negative integers separated by commas.</p>
+          <button class="mt-3 w-full rounded-md border border-[#386987] bg-[#1f4761] px-4 py-2.5 text-sm font-semibold text-[#c5e7fb] transition hover:bg-[#285c78]" type="submit">Test Banker's Corridor Request</button>
+        </form>
+        <div class="mt-4 flex items-center justify-between border-t border-[#2b3630] pt-3"><span class="section-label">Last admission</span><span class="mono text-xs" id="banker-result">No request</span></div>
+      </section>
+    </main>
+    <footer class="mt-4 flex flex-wrap items-center justify-between gap-2 px-1 pb-3 text-[10px] text-[#708077]"><span class="mono">SIMULATED EDGE NODE · NOT SAFETY-CERTIFIED FOR FIELD SIGNAL CONTROL</span><span class="mono" id="updated-at">Awaiting telemetry</span></footer>
+  </div>
+  <div id="toast" role="status" aria-live="polite" class="toast fixed bottom-5 right-5 z-50 max-w-sm rounded-md border border-[#45554a] bg-[#1c2720] px-4 py-3 text-sm shadow-2xl"></div>
+  <dialog id="banker-dialog" aria-labelledby="banker-dialog-title" class="w-[min(92vw,480px)] shadow-2xl">
+    <div class="p-5">
+      <div class="flex items-start justify-between gap-4">
+        <div><p class="section-label">Banker's safety check</p><h2 id="banker-dialog-title" class="mt-2 text-lg font-bold">Corridor result</h2></div>
+        <button id="banker-dialog-close" type="button" class="rounded-md border border-[#45554a] px-3 py-1.5 text-sm text-[#b8c5bb] hover:bg-[#222c25]">Close</button>
+      </div>
+      <p id="banker-dialog-outcome" class="mono mt-5 text-sm"></p>
+      <p class="section-label mt-4">Safe sequence</p>
+      <p id="banker-dialog-sequence" class="mono mt-2 break-words text-sm text-[#a7d6cf]"></p>
+    </div>
+  </dialog>
+
+  <script>
+    const directions = ["North", "South", "East", "West"];
+    const queueNames = ["Q0 · RR 2 ms", "Q1 · RR 4 ms", "Q2 · FCFS"];
+    const wsDot = document.getElementById("ws-dot");
+    const wsStatus = document.getElementById("ws-status");
+    const toast = document.getElementById("toast");
+    const bankerDialog = document.getElementById("banker-dialog");
+    let toastTimer;
+    let socket;
+    let reconnectTimer;
+    let memoryChart;
+    let snapshotStarted = performance.now();
+    let sirenDirection = "";
+    let sirenPid = "";
+    let sirenUntil = 0;
+    let sirenTimer;
+
+    function showToast(message, kind = "info") {
+      toast.textContent = message;
+      toast.style.borderColor = kind === "error" ? "#a84e42" : kind === "success" ? "#477260" : "#45554a";
+      toast.classList.add("visible");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove("visible"), 4200);
+    }
+
+    function formatBytes(value) {
+      if (value < 1024) return `${Math.round(value)} B/s`;
+      if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB/s`;
+      return `${(value / (1024 * 1024)).toFixed(2)} MB/s`;
+    }
+
+    function drawSignalCard(direction, data) {
+      const phase = (data?.phase || "RED").toUpperCase();
+      const holder = data?.lock_holder_pid ? `PID · ${data.lock_holder_pid}` : data?.lock_holder ? `LOCK · ${data.lock_holder}` : "LOCK · FREE";
+      return `<div class="flex h-full flex-col justify-between rounded-md border ${phase === "GREEN" ? "border-[#3e704e] bg-[#1b2a20]" : "border-[#39433c] bg-[#1b211d]"} p-3">
+        <div class="flex items-center justify-between"><span class="mono text-[10px] uppercase text-[#b3c2b7]">${direction}</span><span class="mono text-[9px] ${phase === "GREEN" ? "text-[#77e3a1]" : phase === "YELLOW" ? "text-[#f3bd65]" : "text-[#b2bcb5]"}">${phase}</span></div>
+        <div class="flex items-center gap-2 self-center rounded-full border border-[#38443b] bg-[#111713] px-3 py-2"><span class="signal-lamp ${phase === "RED" ? "active-red" : ""}"></span><span class="signal-lamp ${phase === "YELLOW" ? "active-yellow" : ""}"></span><span class="signal-lamp ${phase === "GREEN" ? "active-green" : ""}"></span></div>
+        <div class="flex items-center justify-between gap-1"><span class="mono truncate text-[9px] text-[#9cad9f]" title="${holder}">${holder}</span><span class="mono text-[10px] text-white">Q${data?.queue_depth ?? 0}</span></div>
+      </div>`;
+    }
+
+    function initDashboard() {
+      document.querySelectorAll(".signal-card").forEach((el) => { el.classList.add("contents"); });
+      const coreList = document.getElementById("core-list");
+      coreList.innerHTML = `<div class="rounded-md border border-[#36503e] bg-[#1a261e] p-3">
+        <div class="mb-2 flex items-center justify-between"><span class="mono text-xs text-[#b8e9c8]">CORE 0 <span class="text-[#7f9185]">/ REAL-TIME ACTUATOR</span></span><span class="mono text-[10px]" id="core0-pct">0%</span></div>
+        <div class="core-track"><div class="core-fill" id="core0-fill" style="width:0%"></div></div><p class="mono mt-2 truncate text-[10px] text-[#93a49a]" id="core0-process">signal-controller</p>
+      </div>` + [1, 2, 3].map((core) => `<div class="rounded-md border border-[#303b33] bg-[#141b17] p-3">
+        <div class="mb-2 flex items-center justify-between"><span class="mono text-xs">CORE ${core} <span class="text-[#7f9185]">/ VISION AI</span></span><span class="mono text-[10px]" id="core${core}-pct">0%</span></div>
+        <div class="core-track"><div class="core-fill" id="core${core}-fill" style="width:0%"></div></div><p class="mono mt-2 truncate text-[10px] text-[#93a49a]" id="core${core}-process">idle</p>
+      </div>`).join("");
+      document.getElementById("queue-list").innerHTML = queueNames.map((name, index) => `<div class="grid grid-cols-[90px_1fr_30px] items-center gap-3"><span class="mono text-[10px] text-[#aab8ae]">${name}</span><div class="queue-track"><div class="queue-fill" id="queue${index}-fill" style="width:0%"></div></div><span class="mono text-right text-[10px]" id="queue${index}-depth">0</span></div>`).join("");
+      const context = document.getElementById("memory-chart").getContext("2d");
+      memoryChart = new Chart(context, {
+        type: "bar",
+        data: { labels: ["FIFO", "LRU", "LFU", "Optimal"], datasets: [
+          { label: "Page faults", data: [0, 0, 0, 0], backgroundColor: ["#f3bd65", "#74d7d2", "#91a7f4", "#77e3a1"], borderRadius: 3, maxBarThickness: 36 }
+        ]},
+        options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (context) => `${context.parsed.x} faults` } } }, scales: { x: { beginAtZero: true, ticks: { color: "#809087", precision: 0, font: { family: "DM Mono", size: 9 } }, grid: { color: "rgba(133,155,140,.1)" } }, y: { ticks: { color: "#bac8bd", font: { family: "DM Mono", size: 10 } }, grid: { display: false } } } }
+      });
+    }
+
+    function updateDashboard(state) {
+      if (!state) return;
+      document.getElementById("tick-value").textContent = state.tick ?? "--";
+      document.getElementById("uptime-value").textContent = formatUptime(state.uptime_seconds || 0);
+      const telemetryAge = state.timestamp ? Math.max(0, Date.now() - state.timestamp * 1000) : Number(state.simulation?.last_tick_ms || 0);
+      document.getElementById("latency-value").textContent = `${telemetryAge.toFixed(1)} ms`;
+      document.getElementById("updated-at").textContent = state.timestamp ? `UPDATED ${new Date(state.timestamp * 1000).toLocaleTimeString()}` : "LIVE TELEMETRY";
+      directions.forEach((direction) => {
+        const element = document.getElementById(`zone-${direction}`);
+        if (element) element.innerHTML = drawSignalCard(direction, state.traffic?.[direction]);
+      });
+      const override = state.emergency_override;
+      if (override?.active) {
+        sirenDirection = override.direction || sirenDirection;
+        sirenPid = override.pid || sirenPid;
+      }
+      renderEmergencyIndicator(Boolean(override?.active) || Date.now() < sirenUntil);
+
+      const core0 = state.cpu?.core0 || {};
+      setCore(0, core0.utilization_percent, core0.active_process);
+      (state.cpu?.cores1_3 || []).forEach((core) => setCore(core.core, core.utilization_percent, core.active_process));
+      document.getElementById("awt-value").innerHTML = `${Number(state.cpu?.average_wait_ms || 0).toFixed(2)} <span class="text-xs text-[#93a49a]">ms</span>`;
+      (state.queues?.mlfq || [0, 0, 0]).forEach((depth, index) => {
+        document.getElementById(`queue${index}-depth`).textContent = depth;
+        document.getElementById(`queue${index}-fill`).style.width = `${Math.min(100, depth * 12)}%`;
+      });
+
+      const memory = state.memory || {};
+      document.getElementById("frame-usage").textContent = `${memory.frames_used || 0} / ${memory.frame_capacity || 8}`;
+      document.getElementById("lru-faults").textContent = memory.lru_faults || 0;
+      document.getElementById("fifo-faults").textContent = memory.fifo_faults || 0;
+      document.getElementById("other-faults").textContent = `${memory.lfu_faults || 0} / ${memory.optimal_faults || 0}`;
+      document.getElementById("shm-throughput").textContent = formatBytes(memory.shm_bytes_per_second || 0);
+      const policies = memory.policy_metrics || {};
+      memoryChart.data.datasets[0].data = ["FIFO", "LRU", "LFU", "Optimal"].map((name) => Number(policies[name]?.page_faults ?? memory[`${name.toLowerCase()}_faults`] ?? 0));
+      memoryChart.update("none");
+    }
+
+    function formatUptime(seconds) {
+      const total = Math.max(0, Math.floor(Number(seconds) || 0));
+      const hours = String(Math.floor(total / 3600)).padStart(2, "0");
+      const minutes = String(Math.floor((total % 3600) / 60)).padStart(2, "0");
+      const remaining = String(total % 60).padStart(2, "0");
+      return `${hours}:${minutes}:${remaining}`;
+    }
+
+    function renderEmergencyIndicator(active) {
+      const indicator = document.getElementById("emergency-indicator");
+      indicator.textContent = active
+        ? `SIREN · P0 · ${sirenDirection || "Emergency"}${sirenPid ? ` · ${sirenPid}` : ""}`
+        : "NO ACTIVE OVERRIDE";
+      indicator.className = `ml-auto mono text-[10px] ${active ? "alert-active" : "text-[#93a49a]"}`;
+    }
+
+    function triggerSiren(direction, pid) {
+      sirenDirection = direction || "Intersection";
+      sirenPid = pid || "Ambulance";
+      sirenUntil = Date.now() + 4500;
+      renderEmergencyIndicator(true);
+      clearTimeout(sirenTimer);
+      sirenTimer = setTimeout(() => {
+        sirenUntil = 0;
+        renderEmergencyIndicator(false);
+      }, 4500);
+    }
+
+    function setCore(core, utilization, process) {
+      const pct = Math.max(0, Math.min(100, Number(utilization || 0)));
+      document.getElementById(`core${core}-pct`).textContent = `${pct.toFixed(0)}%`;
+      document.getElementById(`core${core}-fill`).style.width = `${pct}%`;
+      document.getElementById(`core${core}-process`).textContent = process || "idle";
+    }
+
+    async function refreshStatus() {
+      snapshotStarted = performance.now();
+      try {
+        const response = await fetch("/api/status", { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        updateDashboard(await response.json());
+        document.getElementById("latency-value").textContent = `${(performance.now() - snapshotStarted).toFixed(1)} ms`;
+      } catch (error) { showToast(`Status request failed: ${error.message}`, "error"); }
+    }
+
+    function connectTelemetry() {
+      clearTimeout(reconnectTimer);
+      const scheme = location.protocol === "https:" ? "wss" : "ws";
+      socket = new WebSocket(`${scheme}://${location.host}/ws/telemetry`);
+      socket.addEventListener("open", () => { wsDot.className = "status-dot connected"; wsStatus.textContent = "Telemetry live"; });
+      socket.addEventListener("message", (event) => { try { updateDashboard(JSON.parse(event.data)); } catch (_) { /* Ignore malformed frames. */ } });
+      socket.addEventListener("close", () => { wsDot.className = "status-dot error"; wsStatus.textContent = "Reconnecting"; reconnectTimer = setTimeout(connectTelemetry, 1500); });
+      socket.addEventListener("error", () => socket.close());
+    }
+
+    document.getElementById("emergency-button").addEventListener("click", async (event) => {
+      const button = event.currentTarget;
+      button.disabled = true;
+      try {
+        const response = await fetch("/api/emergency", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ vehicle_type: "Ambulance" }) });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.detail || `HTTP ${response.status}`);
+        triggerSiren(result.direction || result.emergency_override?.direction, result.pid || result.emergency_override?.pid);
+        showToast(`Priority 0 ambulance preemption dispatched for ${result.direction || result.emergency_override?.direction || "the junction"}.`, "success");
+      } catch (error) { showToast(`Emergency request failed: ${error.message}`, "error"); }
+      finally { button.disabled = false; }
+    });
+
+    document.getElementById("banker-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const values = document.getElementById("banker-resources").value.split(",").map((value) => Number(value.trim()));
+      if (values.length !== 3 || values.some((value) => !Number.isInteger(value) || value < 0)) { showToast("Enter three non-negative integer zone values.", "error"); return; }
+      try {
+        const response = await fetch("/api/bankers/request", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pid: document.getElementById("banker-process").value, request: values }) });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.detail || `HTTP ${response.status}`);
+        const sequence = result.safe_sequence ? result.safe_sequence.map((pid) => `P${Number(pid) + 1}`).join(" → ") : "No safe sequence available";
+        const passed = result.granted;
+        document.getElementById("banker-result").textContent = `${passed ? "SAFE" : "ROLLBACK"} · ${sequence}`;
+        document.getElementById("banker-result").className = `mono text-xs ${passed ? "text-[#77e3a1]" : "text-[#ff8879]"}`;
+        document.getElementById("banker-dialog-title").textContent = passed ? "Corridor request granted" : "Allocation rolled back";
+        document.getElementById("banker-dialog-outcome").textContent = passed ? "The requested allocation keeps the system in a safe state." : "The request was rejected because it would make the state unsafe.";
+        document.getElementById("banker-dialog-sequence").textContent = sequence;
+        bankerDialog.showModal();
+      } catch (error) { showToast(`Banker request failed: ${error.message}`, "error"); }
+    });
+
+    document.getElementById("banker-dialog-close").addEventListener("click", () => bankerDialog.close());
+
+    initDashboard();
+    refreshStatus();
+    connectTelemetry();
+  </script>
+</body>
+</html>

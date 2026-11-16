@@ -1,0 +1,240 @@
+{
+  "started_at": "2026-11-07T18:38:08.628074+00:00",
+  "finished_at": "2026-11-07T18:38:09.275990+00:00",
+  "shutdown_signal": "SIGINT",
+  "system_tests": [
+    "test_bankers_deadlock_avoidance",
+    "test_kernel_async_loop_publishes_thread_safe_snapshot",
+    "test_kernel_banker_rolls_back_unsafe_corridor_request",
+    "test_kernel_hardware_context_switch_applies_penalty_and_logs_addresses",
+    "test_kernel_memory_manager_reports_all_policy_ratios",
+    "test_kernel_mlfq_ages_queue_two_tasks_into_queue_zero",
+    "test_kernel_pcp_restores_priority_and_rejects_reverse_order",
+    "test_page_replacement_optimality",
+    "test_preemptive_priority_math"
+  ],
+  "uvicorn_exit_code": 0,
+  "error": null,
+  "final_telemetry": {
+    "tick": 2,
+    "timestamp": 1794076689.05122,
+    "emergency_count": 0,
+    "emergency_override": {
+      "active": false,
+      "direction": null,
+      "vehicle_type": null,
+      "priority": null,
+      "pcp_effective_priority": null
+    },
+    "cpu": {
+      "core0": {
+        "role": "RT Actuator",
+        "active_process": "idle-west",
+        "priority": 1,
+        "utilization_percent": 56.0
+      },
+      "cores1_3": [
+        {
+          "core": 1,
+          "role": "Vision Ingest",
+          "active_process": "vision-worker-1",
+          "utilization_percent": 39.0
+        },
+        {
+          "core": 2,
+          "role": "Vision Ingest",
+          "active_process": "vision-worker-2",
+          "utilization_percent": 52.0
+        },
+        {
+          "core": 3,
+          "role": "Vision Ingest",
+          "active_process": "vision-worker-3",
+          "utilization_percent": 65.0
+        }
+      ],
+      "context_switch_penalty_ms": 0.2,
+      "average_wait_ms": 1.8000000000000003,
+      "average_turnaround_ms": 2.8000000000000003,
+      "mlfq_average_wait_ms": 1.8000000000000003,
+      "priority_trace": [
+        [
+          "idle-east",
+          0.0,
+          1.0
+        ],
+        [
+          "idle-north",
+          1.2,
+          2.2
+        ],
+        [
+          "idle-south",
+          2.4000000000000004,
+          3.4000000000000004
+        ],
+        [
+          "idle-west",
+          3.6000000000000005,
+          4.6000000000000005
+        ]
+      ],
+      "mlfq_trace": [
+        {
+          "pid": "idle-east",
+          "queue": 2,
+          "start": 0.0,
+          "end": 1.0
+        },
+        {
+          "pid": "idle-north",
+          "queue": 2,
+          "start": 1.2,
+          "end": 2.2
+        },
+        {
+          "pid": "idle-south",
+          "queue": 2,
+          "start": 2.4000000000000004,
+          "end": 3.4000000000000004
+        },
+        {
+          "pid": "idle-west",
+          "queue": 2,
+          "start": 3.6000000000000005,
+          "end": 4.6000000000000005
+        }
+      ],
+      "context_switches": 3,
+      "context_switch_time_ns": 776792
+    },
+    "queues": {
+      "priority_depth": 0,
+      "mlfq": [
+        0,
+        0,
+        4
+      ]
+    },
+    "traffic": {
+      "North": {
+        "phase": "GREEN",
+        "queue_depth": 0,
+        "lock_holder": "North",
+        "lock_holder_pid": "signal-north",
+        "approach": "North"
+      },
+      "South": {
+        "phase": "RED",
+        "queue_depth": 0,
+        "lock_holder": null,
+        "lock_holder_pid": null,
+        "approach": "South"
+      },
+      "East": {
+        "phase": "RED",
+        "queue_depth": 0,
+        "lock_holder": null,
+        "lock_holder_pid": null,
+        "approach": "East"
+      },
+      "West": {
+        "phase": "RED",
+        "queue_depth": 0,
+        "lock_holder": null,
+        "lock_holder_pid": null,
+        "approach": "West"
+      }
+    },
+    "memory": {
+      "frame_capacity": 8,
+      "frames_used": 2,
+      "page_references": 2,
+      "page_faults": 2,
+      "page_hits": 0,
+      "hit_ratio": 0.0,
+      "fifo_hit_ratio": 0.0,
+      "lru_hit_ratio": 0.0,
+      "lru_faults": 2,
+      "fifo_faults": 2,
+      "lfu_faults": 2,
+      "optimal_faults": 2,
+      "policy_metrics": {
+        "FIFO": {
+          "page_faults": 2,
+          "page_hits": 0,
+          "fault_ratio": 1.0,
+          "hit_ratio": 0.0
+        },
+        "LRU": {
+          "page_faults": 2,
+          "page_hits": 0,
+          "fault_ratio": 1.0,
+          "hit_ratio": 0.0
+        },
+        "LFU": {
+          "page_faults": 2,
+          "page_hits": 0,
+          "fault_ratio": 1.0,
+          "hit_ratio": 0.0
+        },
+        "Optimal": {
+          "page_faults": 2,
+          "page_hits": 0,
+          "fault_ratio": 1.0,
+          "hit_ratio": 0.0
+        }
+      },
+      "shm_bytes_total": 8192,
+      "shm_bytes_per_second": 0.0,
+      "shm_name": "psm_08f8a602",
+      "shm_error": null
+    },
+    "active_locks": [
+      "Zone 1: North"
+    ],
+    "watchdogs": {
+      "process_manager": "healthy",
+      "vision_worker": "healthy",
+      "restart_count": 0
+    },
+    "simulation": {
+      "mode": "simulated",
+      "tick_hz": 20,
+      "last_tick_ms": 1.308,
+      "schedule_time_ms": 4.6000000000000005
+    },
+    "events": [
+      {
+        "timestamp": 1794076688.998611,
+        "type": "service_started",
+        "message": "20 Hz simulation loop started"
+      }
+    ],
+    "uptime_seconds": 0.1,
+    "active_processes": {
+      "core0": "idle-west",
+      "core1": "vision-worker-1"
+    },
+    "queue_depths": {
+      "Q0": 0,
+      "Q1": 0,
+      "Q2": 4,
+      "priority": 0
+    },
+    "intersection_lights": {
+      "North": "GREEN",
+      "South": "RED",
+      "East": "RED",
+      "West": "RED"
+    },
+    "memory_fault_ratios": {
+      "FIFO": 1.0,
+      "LRU": 1.0,
+      "LFU": 1.0,
+      "Optimal": 1.0
+    },
+    "active_core_count": 4
+  }
+}
+

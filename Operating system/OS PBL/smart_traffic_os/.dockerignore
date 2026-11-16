@@ -1,0 +1,11 @@
+.git
+.gitignore
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+*.pptx
+FINAL_PBL_REPORT_REVIEW_3.md
+VIVA_DEFENSE_CHEATSHEET.md
+logs/*
+output/*

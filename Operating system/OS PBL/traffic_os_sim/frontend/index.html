@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Smart Traffic OS | Edge Node Controller</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen p-6 font-mono">
+  <div class="max-w-6xl mx-auto space-y-6">
+    <!-- Header -->
+    <header class="flex justify-between items-center border-b border-slate-800 pb-4">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight text-teal-400">Smart Traffic OS — Real-Time Edge Controller</h1>
+        <p class="text-xs text-slate-400">CCSE0303A | Group-02 | SDG 11: Sustainable Cities & Communities</p>
+      </div>
+      <div class="flex items-center space-x-3">
+        <span id="wsBadge" class="px-2 py-1 bg-amber-500/20 text-amber-300 text-xs rounded border border-amber-500/40 animate-pulse">Connecting...</span>
+        <button onclick="triggerEmergency()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded shadow transition">TRIGGER AMBULANCE (P0)</button>
+        <button onclick="resetEmergency()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded border border-slate-700">RESET</button>
+      </div>
+    </header>
+
+    <!-- Top Grid: Junction & Cores -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Junction Signals -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow">
+        <h2 class="text-sm font-semibold text-slate-300 mb-4 flex items-center justify-between">
+          <span>4-Way Intersection Actuator</span>
+          <span class="text-xs text-teal-400">Monotonic Locks (Z1 &lt; Z2 &lt; Z3)</span>
+        </h2>
+        <div class="grid grid-cols-2 gap-4">
+          <div id="box-North" class="border border-slate-800 p-3 rounded-lg text-center bg-slate-950">
+            <div class="text-xs text-slate-400">North</div>
+            <div id="light-North" class="text-lg font-bold text-slate-500 mt-1">RED</div>
+          </div>
+          <div id="box-East" class="border border-slate-800 p-3 rounded-lg text-center bg-slate-950">
+            <div class="text-xs text-slate-400">East</div>
+            <div id="light-East" class="text-lg font-bold text-slate-500 mt-1">RED</div>
+          </div>
+          <div id="box-South" class="border border-slate-800 p-3 rounded-lg text-center bg-slate-950">
+            <div class="text-xs text-slate-400">South</div>
+            <div id="light-South" class="text-lg font-bold text-slate-500 mt-1">RED</div>
+          </div>
+          <div id="box-West" class="border border-slate-800 p-3 rounded-lg text-center bg-slate-950">
+            <div class="text-xs text-slate-400">West</div>
+            <div id="light-West" class="text-lg font-bold text-slate-500 mt-1">RED</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CPU Core Affinity -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow">
+        <h2 class="text-sm font-semibold text-slate-300 mb-4 flex items-center justify-between">
+          <span>Multi-Core SMP Scheduling</span>
+          <span class="text-xs text-teal-400">C_sw Overhead = 0.2ms</span>
+        </h2>
+        <div class="space-y-2 text-xs">
+          <div class="flex justify-between items-center bg-slate-950 p-2 rounded border border-slate-800">
+            <span class="text-teal-300 font-bold">Core 0 (Actuator):</span>
+            <span id="core0" class="text-slate-300">P1_Ambulance</span>
+          </div>
+          <div class="flex justify-between items-center bg-slate-950 p-2 rounded border border-slate-800">
+            <span class="text-slate-400 font-bold">Core 1 (Vision AI):</span>
+            <span id="core1" class="text-slate-300">P2_BRT_Bus</span>
+          </div>
+          <div class="flex justify-between items-center bg-slate-950 p-2 rounded border border-slate-800">
+            <span class="text-slate-400 font-bold">Core 2 (Analytics):</span>
+            <span id="core2" class="text-slate-300">P3_SmartTransit</span>
+          </div>
+          <div class="flex justify-between items-center bg-slate-950 p-2 rounded border border-slate-800">
+            <span class="text-slate-400 font-bold">Core 3 (Telemetry):</span>
+            <span id="core3" class="text-slate-300">P4_Logistics</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Grid: Memory Benchmarks & Banker's Evaluator -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Memory Chart -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow">
+        <h2 class="text-sm font-semibold text-slate-300 mb-2">Virtual Memory Page Faults (Frames = 3)</h2>
+        <p class="text-xs text-slate-400 mb-4">LRU operates at near-optimal efficiency on tensor reference feeds.</p>
+        <div class="h-44">
+          <canvas id="memChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Banker's Algorithm Form -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow flex flex-col justify-between">
+        <div>
+          <h2 class="text-sm font-semibold text-slate-300 mb-2">Banker's Algorithm Check</h2>
+          <p class="text-xs text-slate-400 mb-4">Dynamically validates safety states to eliminate gridlocks.</p>
+          <div class="grid grid-cols-3 gap-2 text-xs mb-3">
+            <div>
+              <label class="block text-slate-400 mb-1">Zone 1 Req</label>
+              <input id="r1" type="number" value="1" min="0" max="3" class="w-full bg-slate-950 border border-slate-800 p-1.5 rounded text-center">
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Zone 2 Req</label>
+              <input id="r2" type="number" value="1" min="0" max="2" class="w-full bg-slate-950 border border-slate-800 p-1.5 rounded text-center">
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Zone 3 Req</label>
+              <input id="r3" type="number" value="0" min="0" max="2" class="w-full bg-slate-950 border border-slate-800 p-1.5 rounded text-center">
+            </div>
+          </div>
+          <button onclick="testBanker()" class="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-2 rounded text-xs transition">EVALUATE SAFETY STATE</button>
+        </div>
+        <div id="bankerResult" class="mt-3 p-2.5 bg-slate-950 border border-slate-800 rounded text-xs text-slate-400">
+          Result: Awaiting request evaluation...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let chart;
+    function initChart() {
+      const ctx = document.getElementById('memChart').getContext('2d');
+      chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['FIFO', 'LRU', 'LFU', 'OPTIMAL'],
+          datasets: [{
+            label: 'Page Faults',
+            data: [15, 12, 10, 9],
+            backgroundColor: ['#f43f5e', '#0ea5e9', '#eab308', '#10b981']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, grid: { color: '#1e293b' } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    const ws = new WebSocket(`ws://${location.host}/ws/telemetry`);
+    ws.onopen = () => {
+      document.getElementById('wsBadge').innerText = 'LIVE (10 Hz)';
+      document.getElementById('wsBadge').className = 'px-2 py-1 bg-teal-500/20 text-teal-300 text-xs rounded border border-teal-500/40';
+    };
+    ws.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+      for (const [dir, state] of Object.entries(data.signals)) {
+        const el = document.getElementById(`light-${dir}`);
+        if (!el) continue;
+        el.innerText = state;
+        el.className = state === 'GREEN' ? 'text-lg font-bold text-teal-400 mt-1' : 'text-lg font-bold text-slate-600 mt-1';
+      }
+      document.getElementById('core0').innerText = data.cores.Core_0_Actuator;
+      document.getElementById('core1').innerText = data.cores.Core_1_Vision;
+      document.getElementById('core2').innerText = data.cores.Core_2_Analytics;
+      document.getElementById('core3').innerText = data.cores.Core_3_Telemetry;
+    };
+
+    async function triggerEmergency() {
+      await fetch('/api/emergency', { method: 'POST' });
+    }
+    async function resetEmergency() {
+      await fetch('/api/reset', { method: 'POST' });
+    }
+    async function testBanker() {
+      const r1 = parseInt(document.getElementById('r1').value) || 0;
+      const r2 = parseInt(document.getElementById('r2').value) || 0;
+      const r3 = parseInt(document.getElementById('r3').value) || 0;
+      const res = await fetch('/api/bankers/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pid: "P4_Logistics", request: [r1, r2, r3] })
+      });
+      const data = await res.json();
+      const el = document.getElementById('bankerResult');
+      if (data.granted) {
+        el.className = "mt-3 p-2.5 bg-emerald-950/40 border border-emerald-800/60 rounded text-xs text-emerald-300";
+        el.innerText = `${data.message}\nSafe Sequence: ${data.safe_sequence.join(' -> ')}`;
+      } else {
+        el.className = "mt-3 p-2.5 bg-rose-950/40 border border-rose-800/60 rounded text-xs text-rose-300";
+        el.innerText = `${data.message}`;
+      }
+    }
+    window.onload = initChart;
+  </script>
+</body>
+</html>

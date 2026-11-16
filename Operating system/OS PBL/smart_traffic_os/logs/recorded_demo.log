@@ -1,0 +1,47 @@
+[2J[H
+======================================================================
+ SMART TRAFFIC OS - REAL-TIME KERNEL SIMULATOR
+======================================================================
+
+
+[DEMO] Module 1: System health watchdog and log rotation check
+[WATCHDOG] Python runtime: Python 3.14.6
+[WATCHDOG] Required packages: numpy=2.5.3 matplotlib=3.11.2 
+[WATCHDOG] Audit log: present (     304 bytes)
+[WATCHDOG] Log rotation check: PASS
+[WATCHDOG] Demo log is below the 1 MiB rotation threshold
+
+[DEMO] Module 2: CPU scheduling math comparison
+Algorithm             AWT      ATAT     ART      Switches
+---------------------------------------------------------------
+Preemptive Priority      5.55    10.55     5.55         3
+3-Tier MLFQ              9.45    14.45     1.80         8
+Round Robin              9.35    14.35     2.10         9
+
+[DEMO] Module 3: Banker's Algorithm corridor request and rollback test
+SAFE SEQUENCE: P1_Ambulance -> P2_BRT_Bus -> P3_SmartTransit -> P4_Logistics
+P4 request [1, 1, 0]: DENIED
+Rollback integrity: PASS
+
+[DEMO] Module 4: Page replacement benchmark table
+Policy      Faults  Hits  Fault Ratio
+---------------------------------------
+FIFO           15     5       0.7500
+LRU            12     8       0.6000
+LFU            13     7       0.6500
+Optimal         9    11       0.4500
+
+[DEMO] Rendering scheduling and memory charts
+Generated output/traffic_gantt_chart.png
+Generated output/memory_benchmark_chart.png
+
+======================================================================
+ DEMO COMPLETE: ALL MODULES EXECUTED
+======================================================================
+Charts:
+  - /Users/akshyagupta/Desktop/NIET/3RD SEM/Operating system/OS PBL/smart_traffic_os/output/traffic_gantt_chart.png
+  - /Users/akshyagupta/Desktop/NIET/3RD SEM/Operating system/OS PBL/smart_traffic_os/output/memory_benchmark_chart.png
+Logs:
+  - /Users/akshyagupta/Desktop/NIET/3RD SEM/Operating system/OS PBL/smart_traffic_os/logs/context_switch_audit.log
+  - /Users/akshyagupta/Desktop/NIET/3RD SEM/Operating system/OS PBL/smart_traffic_os/logs/recorded_demo.log
+

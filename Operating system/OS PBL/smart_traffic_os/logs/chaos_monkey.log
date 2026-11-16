@@ -1,0 +1,67 @@
+Chaos run seed=7 time=2026-11-07T13:20:02+0530
+Fault                Result   Measurement                                          Details
+------------------------------------------------------------------------------------------------------------------------
+Core Throttle        PASS     modeled_switch_cost=0.80 -> 20.00 ms                 Scheduler latency was increased through the simulation's overhead parameter; no hardware frequency was changed.
+Memory Pressure      FAIL     bounded_allocation=16 MiB, threshold=85% RAM         No 85%-RAM watchdog is implemented; allocation was capped at 16 MiB to avoid destabilizing the host.
+Worker Crash         FAIL     child_exit_observed=1.31 ms, returncode=-9           SIGKILL was confined to the test-owned worker; no daemon watchdog/restart hook exists in this project.
+Lock Starvation      FAIL     lease=50 ms, owner_released=False                    PriorityCeilingMutex raises/restores priority but does not enforce an expiring lock lease.
+------------------------------------------------------------------------------------------------------------------------
+Resilience score: 1/4 recovery benchmarks passed
+
+Chaos run seed=7 time=2026-11-07T13:20:24+0530
+Fault                Result   Measurement                                          Details
+------------------------------------------------------------------------------------------------------------------------
+Core Throttle        PASS     modeled_switch_cost=0.80 -> 20.00 ms                 Scheduler latency was increased through the simulation's overhead parameter; no hardware frequency was changed.
+Memory Pressure      FAIL     bounded_allocation=16 MiB, threshold=85% RAM         No 85%-RAM watchdog is implemented; allocation was capped at 16 MiB to avoid destabilizing the host.
+Worker Crash         FAIL     child_exit_observed=1.32 ms, returncode=-9           SIGKILL was confined to the test-owned worker; no daemon watchdog/restart hook exists in this project.
+Lock Starvation      FAIL     lease=50 ms, owner_released=False                    PriorityCeilingMutex raises/restores priority but does not enforce an expiring lock lease.
+------------------------------------------------------------------------------------------------------------------------
+Resilience score: 1/4 recovery benchmarks passed
+
+Chaos run seed=7 time=2026-11-07T13:21:11+0530
+Fault                Result   Measurement                                          Details
+------------------------------------------------------------------------------------------------------------------------
+Core Throttle        PASS     modeled_switch_cost=0.80 -> 20.00 ms                 Scheduler latency was increased through the simulation's overhead parameter; no hardware frequency was changed.
+Memory Pressure      FAIL     bounded_allocation=16 MiB, threshold=85% RAM         No 85%-RAM watchdog is implemented; allocation was capped at 16 MiB to avoid destabilizing the host.
+Worker Crash         FAIL     child_exit_observed=1.33 ms, returncode=-9           SIGKILL was confined to the test-owned worker; no daemon watchdog/restart hook exists in this project.
+Lock Starvation      FAIL     lease=50 ms, intersection_available=False, owner_priority=1 PCP raises the rogue owner's priority, but neither it nor MonotonicIntersectionLock enforces an expiring lease.
+------------------------------------------------------------------------------------------------------------------------
+Resilience score: 1/4 recovery benchmarks passed
+
+Chaos run seed=7 time=2026-11-07T13:21:46+0530
+Scenario             Result  Measurement
+------------------------------------------------------------------------------------------------
+Core Throttle        PASS    modeled_switch_cost=0.80 -> 20.00 ms
+  Scheduler latency was increased through the simulation's overhead parameter; no hardware
+    frequency was changed.
+Memory Pressure      FAIL    bounded_allocation=16 MiB, threshold=85% RAM
+  No 85%-RAM watchdog is implemented; allocation was capped at 16 MiB to avoid destabilizing the
+    host.
+Worker Crash         FAIL    child_exit_observed=1.33 ms, returncode=-9
+  SIGKILL was confined to the test-owned worker; no daemon watchdog/restart hook exists in this
+    project.
+Lock Starvation      FAIL    lease=50 ms, intersection_available=False, owner_priority=1
+  PCP raises the rogue owner's priority, but neither it nor MonotonicIntersectionLock enforces
+    an expiring lease.
+------------------------------------------------------------------------------------------------
+Resilience score: 1/4 recovery benchmarks passed
+
+Chaos run seed=7 time=2026-11-07T13:22:06+0530
+Scenario             Result  Measurement
+--------------------------------------------------------------------------
+Core Throttle        PASS    modeled_switch_cost=0.80 -> 20.00 ms
+  Scheduler latency was increased through the simulation's overhead
+    parameter; no hardware frequency was changed.
+Memory Pressure      FAIL    bounded_allocation=16 MiB, threshold=85% RAM
+  No 85%-RAM watchdog is implemented; allocation was capped at 16 MiB to
+    avoid destabilizing the host.
+Worker Crash         FAIL    child_exit_observed=1.39 ms, returncode=-9
+  SIGKILL was confined to the test-owned worker; no daemon
+    watchdog/restart hook exists in this project.
+Lock Starvation      FAIL    lease=50 ms, intersection_available=False,
+  owner_priority=1
+  PCP raises the rogue owner's priority, but neither it nor
+    MonotonicIntersectionLock enforces an expiring lease.
+--------------------------------------------------------------------------
+Resilience score: 1/4 recovery benchmarks passed
+

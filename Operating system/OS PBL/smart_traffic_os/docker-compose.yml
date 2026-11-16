@@ -1,0 +1,54 @@
+services:
+  traffic_edge_core:
+    build:
+      context: .
+      target: runtime
+    image: smart-traffic-os:latest
+    container_name: smart_traffic_edge_core
+    working_dir: /app
+    command: ["uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "8001"]
+    environment:
+      KERNEL_ROLE: core
+    cpuset: "0"
+    mem_limit: 512m
+    ipc: host
+    volumes:
+      - traffic_logs:/app/logs
+    restart: on-failure:5
+    healthcheck:
+      test: ["CMD", "python3", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8001/health', timeout=2)"]
+      interval: 15s
+      timeout: 4s
+      retries: 3
+      start_period: 12s
+    stop_grace_period: 10s
+
+  web_gateway:
+    build:
+      context: .
+      target: runtime
+    image: smart-traffic-os:latest
+    container_name: smart_traffic_web_gateway
+    working_dir: /app
+    command: ["uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      KERNEL_ROLE: gateway
+      KERNEL_SERVICE_URL: http://traffic_edge_core:8001
+    ports:
+      - "8000:8000"
+    cpuset: "1-3"
+    mem_limit: 512m
+    restart: unless-stopped
+    depends_on:
+      traffic_edge_core:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python3", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+      interval: 15s
+      timeout: 4s
+      retries: 3
+      start_period: 12s
+    stop_grace_period: 10s
+
+volumes:
+  traffic_logs:

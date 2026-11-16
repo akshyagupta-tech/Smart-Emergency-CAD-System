@@ -1,0 +1,53 @@
+name: Smart Traffic OS CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-artifacts:
+    name: Test and generate OS PBL artifacts
+    runs-on: ubuntu-latest
+    env:
+      MPLBACKEND: Agg
+      PYTHONUNBUFFERED: "1"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip numpy matplotlib pytest python-pptx
+
+      - name: Run system tests
+        run: pytest tests/test_system.py -v
+
+      - name: Run master pipeline headlessly
+        run: python3 run_master.py
+
+      - name: Generate final report
+        run: python3 generate_final_report.py
+
+      - name: Upload generated artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smart-traffic-os-artifacts
+          if-no-files-found: warn
+          path: |
+            output/traffic_gantt_chart.png
+            output/memory_benchmark_chart.png
+            FINAL_PBL_REPORT_REVIEW_3.md

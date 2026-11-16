@@ -1,0 +1,12 @@
+=== HARDWARE CONTEXT SWITCH & PCB AUDIT LOG [2026-10-21T04:47:07.818879] ===
+
+[  3.00 ms] CPU TRAP -> SCHEDULER DISPATCH
+  [SAVED STATE  ] PID: P1_Emerg   | RIP: 0x7fff916da0 | RSP: 0x7fff916df8 | FLAGS: [IF, CF]
+  [RESTORE STATE] PID: P2_Actuat  | RIP: 0x7fff8ee910 | RSP: 0x7fff8ee9f8 | CR3 (PGD): 0x091097000
+  [HARDWARE JITTER] Context Switch Penalty Applied: 0.20 ms
+  ------------------------------------------------------------------------------------
+[  8.20 ms] CPU TRAP -> SCHEDULER DISPATCH
+  [SAVED STATE  ] PID: P2_Actuat  | RIP: 0x7fff8ee9a0 | RSP: 0x7fff8ee9f8 | FLAGS: [IF, CF]
+  [RESTORE STATE] PID: P3_Camera  | RIP: 0x7fffe7c110 | RSP: 0x7fffe7c1f8 | CR3 (PGD): 0x502f32000
+  [HARDWARE JITTER] Context Switch Penalty Applied: 0.20 ms
+  ------------------------------------------------------------------------------------
